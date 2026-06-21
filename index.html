@@ -1390,6 +1390,36 @@
   <!-- PERFIL COMPORTAMENTAL -->
   <div id="tab-perfil" class="content hidden">
 
+    <!-- MINHA CONTA — só visível pro atleta -->
+    <div id="perfil-minha-conta" class="card hidden">
+      <div class="card-title">🔐 Minha <span class="accent">Conta</span></div>
+      <div style="font-size:0.78rem;color:var(--cinza);margin-bottom:1rem;">Troque sua senha de acesso por uma que só você saiba.</div>
+
+      <div class="input-group">
+        <label>Senha Atual</label>
+        <div style="position:relative;">
+          <input type="password" id="senha-atual" placeholder="••••••" style="padding-right:2.75rem;">
+          <button type="button" onclick="toggleSenha('senha-atual', this)" style="position:absolute;right:0;top:0;height:100%;width:2.75rem;background:none;border:none;color:var(--cinza);cursor:pointer;font-size:1rem;">👁</button>
+        </div>
+      </div>
+      <div class="input-group">
+        <label>Nova Senha</label>
+        <div style="position:relative;">
+          <input type="password" id="senha-nova" placeholder="Mínimo 4 caracteres" style="padding-right:2.75rem;">
+          <button type="button" onclick="toggleSenha('senha-nova', this)" style="position:absolute;right:0;top:0;height:100%;width:2.75rem;background:none;border:none;color:var(--cinza);cursor:pointer;font-size:1rem;">👁</button>
+        </div>
+      </div>
+      <div class="input-group">
+        <label>Confirmar Nova Senha</label>
+        <div style="position:relative;">
+          <input type="password" id="senha-confirmar" placeholder="Repita a nova senha" style="padding-right:2.75rem;">
+          <button type="button" onclick="toggleSenha('senha-confirmar', this)" style="position:absolute;right:0;top:0;height:100%;width:2.75rem;background:none;border:none;color:var(--cinza);cursor:pointer;font-size:1rem;">👁</button>
+        </div>
+      </div>
+
+      <button class="btn-primary" onclick="trocarSenhaAtleta()">SALVAR NOVA SENHA</button>
+    </div>
+
     <!-- QUESTIONÁRIO — preenchido pelo atleta (autoavaliação) -->
     <div class="card">
       <div class="card-title">🥊 Como Você <span class="accent">Se Vê</span></div>
@@ -2422,7 +2452,11 @@ function renderAtletas() {
         <div class="atleta-meta" style="margin-top:0.2rem;">
           Formato: ${a.formato || '—'} · Categoria: ${a.categoria || '—'}
         </div>
-        ${a.codigoAcesso ? `<div class="atleta-meta" style="margin-top:0.3rem;color:var(--dourado);">🔑 Login do atleta: <b>${a.codigoAcesso}</b> / <b>${a.senhaAcesso}</b></div>` : ''}
+        ${a.codigoAcesso ? `
+        <div class="atleta-meta" style="margin-top:0.3rem;color:var(--dourado);display:flex;align-items:center;gap:0.5rem;flex-wrap:wrap;">
+          <span>🔑 Login: <b>${a.codigoAcesso}</b> / <b>${a.senhaAcesso}</b></span>
+          <button onclick="event.stopPropagation(); resetarSenhaAtleta('${a.id}')" style="background:none;border:1px solid var(--dourado);color:var(--dourado);border-radius:4px;padding:0.15rem 0.5rem;font-size:0.65rem;cursor:pointer;">Resetar senha</button>
+        </div>` : ''}
       </div>
       <div style="display:flex;flex-direction:column;gap:0.4rem;align-items:flex-end;">
         <span class="atleta-badge">${a.nivel}</span>
@@ -2439,6 +2473,16 @@ function selecionarAtleta(id) {
   fecharModal('modal-selecionar');
   showToast(`Atleta: ${state.atletaAtual.nome}`);
   showTab('dashboard');
+}
+
+async function resetarSenhaAtleta(atletaId) {
+  const a = state.atletas.find(x => x.id === atletaId);
+  if (!a) return;
+  const novaSenha = a.codigoAcesso + '2026';
+  a.senhaAcesso = novaSenha;
+  await salvarEstado();
+  showToast(`Senha de ${a.apelido || a.nome} resetada para: ${novaSenha}`);
+  renderAtletas();
 }
 
 function mudarAtleta() {
@@ -4097,6 +4141,8 @@ function renderPerfilComportamental() {
   if (!a) return;
   const souAtleta = state.perfil === 'atleta';
 
+  document.getElementById('perfil-minha-conta').classList.toggle('hidden', !souAtleta);
+
   if (!a.perfilComportamental) a.perfilComportamental = {};
   const pc = a.perfilComportamental;
 
@@ -4499,6 +4545,37 @@ function toggleSenha(inputId, btn) {
     input.type = 'password';
     btn.textContent = '👁';
   }
+}
+
+async function trocarSenhaAtleta() {
+  const a = state.atletaAtual;
+  if (!a) return;
+
+  const atual = document.getElementById('senha-atual').value;
+  const nova = document.getElementById('senha-nova').value;
+  const confirmar = document.getElementById('senha-confirmar').value;
+
+  if (atual !== a.senhaAcesso) {
+    showToast('Senha atual incorreta', 'erro');
+    return;
+  }
+  if (nova.length < 4) {
+    showToast('A nova senha precisa ter pelo menos 4 caracteres', 'erro');
+    return;
+  }
+  if (nova !== confirmar) {
+    showToast('As senhas não coincidem', 'erro');
+    return;
+  }
+
+  a.senhaAcesso = nova;
+  await salvarEstado();
+
+  document.getElementById('senha-atual').value = '';
+  document.getElementById('senha-nova').value = '';
+  document.getElementById('senha-confirmar').value = '';
+
+  showToast('✅ Senha alterada com sucesso!');
 }
 
 let _resetConfirmando = false;
