@@ -6,6 +6,9 @@
 <title>PADOTY BOXING</title>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <style>
   :root {
     --preto: #0A0A0A;
@@ -960,6 +963,7 @@
   <header class="app-header">
     <div class="header-logo">PADOTY <span>BOXING</span></div>
     <div class="header-right">
+      <span id="sync-indicator" style="font-size:0.65rem;color:var(--cinza);" title="Status de sincronização">●</span>
       <span class="trainer-badge" id="atleta-header-name">—</span>
       <button class="btn-secondary" id="btn-trocar-atleta" onclick="mudarAtleta()" style="padding:0.4rem 0.8rem;font-size:0.7rem;">Atletas</button>
       <button class="btn-secondary" onclick="fazerLogout()" style="padding:0.4rem 0.8rem;font-size:0.7rem;">Sair</button>
@@ -1656,6 +1660,49 @@
 <div class="toast" id="toast"></div>
 
 <script>
+// ======= FIREBASE =======
+const firebaseConfig = {
+  apiKey: "AIzaSyC9duIEyHpPqt4ygFScR_HyE65aSbvOqYM",
+  authDomain: "app-boxing.firebaseapp.com",
+  projectId: "app-boxing",
+  storageBucket: "app-boxing.firebasestorage.app",
+  messagingSenderId: "328870099691",
+  appId: "1:328870099691:web:24b155910696f064489cae"
+};
+
+let _fbApp, _db, _fbAuth, _fbDisponivel = false;
+try {
+  _fbApp = firebase.initializeApp(firebaseConfig);
+  _db = firebase.firestore();
+  _fbAuth = firebase.auth();
+  // Habilita cache offline — funciona sem internet e sincroniza quando voltar
+  _db.enablePersistence({ synchronizeTabs: true }).catch(() => {});
+  _fbDisponivel = true;
+} catch(e) {
+  console.warn('Firebase indisponível, usando apenas armazenamento local.', e);
+  _fbDisponivel = false;
+}
+
+const DOC_PADOTY = () => _db.collection('padoty_boxing').doc('dados_principais');
+
+// Garante que existe uma sessão autenticada (anônima) antes de qualquer leitura/escrita.
+// Isso é o que permite a regra do Firestore exigir request.auth != null com segurança,
+// sem pedir nenhuma tela de login extra — o login por código/senha do app continua igual.
+let _authPromise = null;
+function garantirAuth() {
+  if (!_fbDisponivel) return Promise.resolve(null);
+  if (_fbAuth.currentUser) return Promise.resolve(_fbAuth.currentUser);
+  if (_authPromise) return _authPromise;
+  _authPromise = _fbAuth.signInAnonymously()
+    .then(cred => cred.user)
+    .catch(e => {
+      console.warn('Falha na autenticação anônima do Firebase:', e);
+      return null;
+    })
+    .finally(() => { _authPromise = null; });
+  return _authPromise;
+}
+
 // ======= ESTADO =======
 let state = {
   logado: false,
@@ -1683,44 +1730,122 @@ const PSE_DESC = {
 };
 
 // ======= LOCAL STORAGE =======
-function salvarEstado() {
-  localStorage.setItem('padoty_boxing', JSON.stringify({
+// ======= LOCAL STORAGE (fallback) + FIRESTORE (principal) =======
+let _salvandoFirebase = false;
+let _ultimoSalvamentoLocal = null;
+
+function salvarEstadoLocal() {
+  const payload = {
     atletas: state.atletas,
     atletaAtualId: state.atletaAtual?.id
-  }));
+  };
+  localStorage.setItem('padoty_boxing', JSON.stringify(payload));
+  _ultimoSalvamentoLocal = JSON.stringify(payload);
 }
 
-function carregarEstado() {
+async function salvarEstado() {
+  // Sempre salva local primeiro — garante que nada se perde mesmo offline
+  salvarEstadoLocal();
+
+  if (!_fbDisponivel) return;
+
   try {
-    const d = JSON.parse(localStorage.getItem('padoty_boxing') || '{}');
-    state.atletas = d.atletas || [];
-    if (d.atletaAtualId) {
-      state.atletaAtual = state.atletas.find(a => a.id === d.atletaAtualId) || null;
-    }
-    // Se não tem atleta, pré-cadastrar o Maguila
-    if (state.atletas.length === 0) {
-      state.atletas.push(criarAtletaMaguila());
-      state.atletaAtual = state.atletas[0];
-      salvarEstado();
-    }
-    // SEMPRE atualizar periodização do Maguila para a versão mais recente
-    const maguila = state.atletas.find(a => a.id === 'maguila_001');
-    if (maguila) {
-      const novo = criarAtletaMaguila();
-      maguila.periodizacao = novo.periodizacao;
-      maguila.focoTecnico = novo.focoTecnico;
-      maguila.inicioPrep = '2026-06-22';
-      maguila.diasSemana = 6;
-      maguila.codigoAcesso = maguila.codigoAcesso || 'maguila';
-      maguila.senhaAcesso = maguila.senhaAcesso || 'maguila2026';
-      if (!state.atletaAtual) state.atletaAtual = maguila;
-      salvarEstado();
-    }
+    await garantirAuth();
+    _salvandoFirebase = true;
+    await DOC_PADOTY().set({
+      atletas: state.atletas,
+      atletaAtualId: state.atletaAtual?.id || null,
+      atualizadoEm: new Date().toISOString()
+    });
   } catch(e) {
-    state.atletas = [criarAtletaMaguila()];
-    state.atletaAtual = state.atletas[0];
+    console.warn('Erro ao salvar no Firebase, dados mantidos localmente:', e);
+  } finally {
+    _salvandoFirebase = false;
   }
 }
+
+async function carregarEstado() {
+  let carregouDoFirebase = false;
+
+  if (_fbDisponivel) {
+    try {
+      await garantirAuth();
+      const snap = await DOC_PADOTY().get();
+      if (snap.exists) {
+        const d = snap.data();
+        state.atletas = d.atletas || [];
+        if (d.atletaAtualId) {
+          state.atletaAtual = state.atletas.find(a => a.id === d.atletaAtualId) || null;
+        }
+        carregouDoFirebase = true;
+      }
+    } catch(e) {
+      console.warn('Erro ao carregar do Firebase, usando dados locais:', e);
+    }
+  }
+
+  if (!carregouDoFirebase) {
+    try {
+      const d = JSON.parse(localStorage.getItem('padoty_boxing') || '{}');
+      state.atletas = d.atletas || [];
+      if (d.atletaAtualId) {
+        state.atletaAtual = state.atletas.find(a => a.id === d.atletaAtualId) || null;
+      }
+    } catch(e) {
+      state.atletas = [];
+    }
+  }
+
+  // Se não tem atleta, pré-cadastrar o Maguila
+  if (state.atletas.length === 0) {
+    state.atletas.push(criarAtletaMaguila());
+    state.atletaAtual = state.atletas[0];
+    await salvarEstado();
+  }
+  // SEMPRE atualizar periodização do Maguila para a versão mais recente
+  const maguila = state.atletas.find(a => a.id === 'maguila_001');
+  if (maguila) {
+    const novo = criarAtletaMaguila();
+    maguila.periodizacao = novo.periodizacao;
+    maguila.focoTecnico = novo.focoTecnico;
+    maguila.inicioPrep = '2026-06-22';
+    maguila.diasSemana = 6;
+    maguila.codigoAcesso = maguila.codigoAcesso || 'maguila';
+    maguila.senhaAcesso = maguila.senhaAcesso || 'maguila2026';
+    if (!state.atletaAtual) state.atletaAtual = maguila;
+    await salvarEstado();
+  }
+
+  // Ativa sincronização em tempo real (outros dispositivos vendo as mesmas mudanças)
+  if (_fbDisponivel) ativarSyncTempoReal();
+}
+
+function ativarSyncTempoReal() {
+  if (_syncAtivo) return;
+  _syncAtivo = true;
+  DOC_PADOTY().onSnapshot(snap => {
+    if (!snap.exists || _salvandoFirebase) return;
+    const d = snap.data();
+    const payloadRecebido = JSON.stringify({ atletas: d.atletas, atletaAtualId: d.atletaAtualId });
+    if (payloadRecebido === _ultimoSalvamentoLocal) return; // evita loop com o próprio salvamento
+
+    state.atletas = d.atletas || state.atletas;
+    if (d.atletaAtualId && state.atletaAtual?.id !== d.atletaAtualId) {
+      const novoAtual = state.atletas.find(a => a.id === d.atletaAtualId);
+      if (novoAtual) state.atletaAtual = novoAtual;
+    } else if (state.atletaAtual) {
+      // Atualiza o objeto atual com os dados novos
+      const atualizado = state.atletas.find(a => a.id === state.atletaAtual.id);
+      if (atualizado) state.atletaAtual = atualizado;
+    }
+    salvarEstadoLocal();
+    if (state.logado) {
+      atualizarUI();
+      showTab(state.tabAtual);
+    }
+  }, err => console.warn('Erro no listener Firestore:', err));
+}
+let _syncAtivo = false;
 
 function criarAtletaMaguila() {
   // Tipos de sessão: completo, tecnico, pernas, condicionamento, vestibular, forca, sparring, sparring_b, descanso
@@ -2060,19 +2185,20 @@ function selecionarPerfilLogin(perfil) {
   document.getElementById('login-campos-atleta').classList.toggle('hidden', perfil !== 'atleta');
 }
 
-function fazerLogin() {
+async function fazerLogin() {
   if (state.perfilLoginSelecionado === 'atleta') {
-    fazerLoginAtleta();
+    await fazerLoginAtleta();
   } else {
-    fazerLoginTreinador();
+    await fazerLoginTreinador();
   }
 }
 
-function fazerLoginTreinador() {
+async function fazerLoginTreinador() {
   const u = document.getElementById('login-user').value;
   const p = document.getElementById('login-pass').value;
   if ((u === 'treinador' || u === 'fabio') && p === 'padoty2026') {
-    carregarEstado();
+    showToast('Carregando dados...');
+    await carregarEstado();
     state.perfil = 'treinador';
     state.logado = true;
     document.getElementById('login-screen').style.display = 'none';
@@ -2087,19 +2213,20 @@ function fazerLoginTreinador() {
   }
 }
 
-function fazerLoginAtleta() {
+async function fazerLoginAtleta() {
   const codigo = document.getElementById('login-atleta-codigo').value.trim().toLowerCase();
   const senha = document.getElementById('login-atleta-senha').value;
 
-  carregarEstado(); // garante que state.atletas está populado
+  showToast('Carregando dados...');
+  await carregarEstado(); // garante que state.atletas está populado
 
   // AUTO-CORREÇÃO: garante que o Maguila sempre tem login válido,
-  // mesmo se o localStorage tiver uma versão antiga sem esses campos
+  // mesmo se os dados salvos forem de uma versão antiga sem esses campos
   let maguila = state.atletas.find(a => a.id === 'maguila_001');
   if (maguila && (!maguila.codigoAcesso || !maguila.senhaAcesso)) {
     maguila.codigoAcesso = 'maguila';
     maguila.senhaAcesso = 'maguila2026';
-    salvarEstado();
+    await salvarEstado();
   }
 
   const atleta = state.atletas.find(a =>
@@ -2169,6 +2296,11 @@ function atualizarUI() {
   const a = state.atletaAtual;
   if (!a) return;
   document.getElementById('atleta-header-name').textContent = a.apelido || a.nome;
+  const syncEl = document.getElementById('sync-indicator');
+  if (syncEl) {
+    syncEl.style.color = _fbDisponivel ? 'var(--verde)' : 'var(--cinza)';
+    syncEl.title = _fbDisponivel ? 'Sincronizado com a nuvem' : 'Apenas neste aparelho (sem conexão com a nuvem)';
+  }
 }
 
 function showToast(msg, tipo) {
