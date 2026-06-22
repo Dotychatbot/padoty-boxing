@@ -1797,6 +1797,13 @@
       <label>Observações do Treinador</label>
       <textarea id="edit-obs" rows="3" placeholder="Ajustes, justificativa fisiológica, pontos a observar..."></textarea>
     </div>
+
+    <div class="input-group">
+      <label>Checklist da Sessão <small style="color:var(--cinza);font-weight:normal;">— um item por linha</small></label>
+      <textarea id="edit-checklist" rows="5" placeholder="🔥 Aquecimento&#10;👊 Sombra: 3 rounds&#10;🥊 Manoplas&#10;🎯 Saco&#10;💪 Fortalecimento"></textarea>
+      <div style="font-size:0.7rem;color:var(--cinza);margin-top:0.3rem;">Edite livremente. Use emojis pra identificar cada etapa.</div>
+    </div>
+
     <button class="btn-primary" onclick="salvarEdicaoSessao()">SALVAR ALTERAÇÕES</button>
   </div>
 </div>
@@ -2120,11 +2127,27 @@ async function carregarEstado() {
     state.atletaAtual = state.atletas[0];
     await salvarEstado();
   }
-  // SEMPRE atualizar periodização do Maguila para a versão mais recente
+  // Atualizar dados do Maguila preservando edições manuais nas sessões
   const maguila = state.atletas.find(a => a.id === 'maguila_001');
   if (maguila) {
     const novo = criarAtletaMaguila();
-    maguila.periodizacao = novo.periodizacao;
+
+    // Só substitui a periodização se ainda não existe (primeiro acesso)
+    // ou se o número de semanas mudou (estrutura nova)
+    const temPeriodizacao = maguila.periodizacao?.semanas?.length > 0;
+    const mesmaTamanho = maguila.periodizacao?.semanas?.length === novo.periodizacao.semanas.length;
+
+    if (!temPeriodizacao) {
+      // Primeiro acesso — carrega tudo do zero
+      maguila.periodizacao = novo.periodizacao;
+    } else if (!mesmaTamanho) {
+      // Estrutura mudou (semanas adicionadas/removidas) — atualiza preservando edições
+      maguila.periodizacao.mesociclos = novo.periodizacao.mesociclos;
+      maguila.periodizacao.textoIA = novo.periodizacao.textoIA;
+      // Não sobrescreve as sessões existentes
+    }
+    // Se mesma estrutura — não toca nas sessões (preserva edições manuais)
+
     maguila.focoTecnico = novo.focoTecnico;
     maguila.inicioPrep = '2026-06-22';
     maguila.diasSemana = 6;
@@ -3641,6 +3664,12 @@ function abrirEdicaoSessao(semIdx, diaIdx) {
   document.getElementById('edit-forcamento').value = s.forcamento || '';
   document.getElementById('edit-obs').value = s.obs || '';
 
+  // Popular checklist atual como texto editável
+  const checklistEl = document.getElementById('edit-checklist');
+  if (checklistEl) {
+    checklistEl.value = (s.checklist || []).join('\n');
+  }
+
   document.getElementById('modal-editar-sessao').classList.remove('hidden');
 }
 
@@ -3689,9 +3718,19 @@ function salvarEdicaoSessao() {
   s.obs = document.getElementById('edit-obs').value.trim();
   s.resumo = s.principal.split('\n')[0];
 
-  // Regenerar checklist automaticamente com base no novo conteúdo
-  s.checklist = gerarChecklistDaSessao(s);
-  s.feitos = []; // resetar itens marcados pois o conteúdo mudou
+  // Checklist: usar o que foi editado manualmente
+  const checklistEl = document.getElementById('edit-checklist');
+  if (checklistEl && checklistEl.value.trim()) {
+    // Usar o checklist editado manualmente
+    s.checklist = checklistEl.value
+      .split('\n')
+      .map(l => l.trim())
+      .filter(l => l.length > 0);
+  } else {
+    // Se o campo estiver vazio, regenerar automaticamente
+    s.checklist = gerarChecklistDaSessao(s);
+  }
+  s.feitos = s.feitos || []; // preservar itens já marcados
 
   salvarEstado();
   fecharModal('modal-editar-sessao');
