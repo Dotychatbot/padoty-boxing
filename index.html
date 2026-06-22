@@ -39,7 +39,7 @@
   /* ======= TELA DE LOGIN ======= */
   #login-screen {
     min-height: 100vh;
-    display: flex;
+    display: none; /* controlado por JS */
     flex-direction: column;
     align-items: center;
     justify-content: center;
@@ -102,7 +102,7 @@
     padding: 0.75rem 1rem;
     color: var(--branco);
     font-family: 'Inter', sans-serif;
-    font-size: 0.9rem;
+    font-size: 1rem; /* mínimo 16px evita zoom automático no iOS */
     outline: none;
     transition: border-color 0.2s;
   }
@@ -217,7 +217,11 @@
     display: flex;
     overflow-x: auto;
     padding: 0 1rem;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
   }
+  .nav-tabs::-webkit-scrollbar { display: none; }
 
   .nav-tab {
     padding: 0.85rem 1.2rem;
@@ -261,8 +265,11 @@
     color: var(--branco);
     margin-bottom: 1rem;
     display: flex;
-    align-items: center;
-    gap: 0.5rem;
+    align-items: flex-start;
+    flex-wrap: wrap;
+    gap: 0.3rem;
+    word-break: break-word;
+    overflow-wrap: break-word;
   }
 
   .card-title .accent { color: var(--vermelho); }
@@ -901,12 +908,95 @@
   ::-webkit-scrollbar-track { background: var(--preto); }
   ::-webkit-scrollbar-thumb { background: var(--borda); border-radius: 2px; }
 
+  /* ======= RESPONSIVIDADE ======= */
+
+  /* MOBILE PEQUENO (até 480px) — iPhone SE, Android compacto */
   @media (max-width: 480px) {
+    /* Layout geral */
+    .content { padding: 0.75rem; }
+    .card { padding: 1rem; }
+
+    /* Header */
+    .app-header { padding: 0 0.75rem; height: 50px; }
+    .header-logo { font-size: 1.15rem; }
+    .header-right { gap: 0.4rem; }
+    .header-right .btn-secondary { padding: 0.3rem 0.5rem; font-size: 0.65rem; }
+    .trainer-badge { display: none; } /* esconde nome no header em tela muito pequena */
+
+    /* Login */
+    .login-logo { font-size: 2.8rem; }
+    .login-box { padding: 1.25rem; }
+
+    /* Navegação */
+    .nav-tab { padding: 0.65rem 0.75rem; font-size: 0.65rem; letter-spacing: 0.04em; }
+
+    /* Cards de atleta */
+    .atleta-card { flex-wrap: wrap; gap: 0.5rem; }
+    .atleta-badge { align-self: flex-start; }
+
+    /* Grids */
     .macro-grid { grid-template-columns: 1fr; }
-    .stats-grid { grid-template-columns: 1fr; }
+    .stats-grid { grid-template-columns: repeat(2, 1fr); }
     .wellness-grid { grid-template-columns: 1fr; }
-    .countdown-items { gap: 1rem; }
+    .countdown-items { gap: 0.8rem; }
+    .countdown-number { font-size: 1.8rem; }
+
+    /* PSE */
+    .pse-btn { min-width: 28px; height: 38px; font-size: 0.8rem; padding: 0; }
+
+    /* Sessão */
+    .sessao-header { flex-wrap: wrap; gap: 0.5rem; }
+    .sessao-header .btn-secondary { width: 100%; text-align: center; }
+    .sessao-foco { font-size: 0.7rem; }
+    .sessao-dia { font-size: 1.1rem; }
+
+    /* Botões */
+    .btn-primary, .btn-secondary, .btn-gold, .btn-danger { font-size: 0.82rem; padding: 0.65rem 0.9rem; }
+
+    /* Inputs */
+    input[type="text"], input[type="number"], input[type="password"],
+    input[type="date"], input[type="email"], textarea, select {
+      font-size: 0.88rem;
+      padding: 0.55rem 0.7rem;
+    }
+
+    /* Cartel — campos V/D/E lado a lado */
+    .cartel-vde { gap: 0.4rem; }
+
+    /* Modal */
+    .modal { padding: 1rem; }
+
+    /* Avaliações */
+    .section-header { flex-wrap: wrap; gap: 0.5rem; }
+    .section-header .btn-gold { width: 100%; text-align: center; }
+
+    /* Toast */
+    .toast { font-size: 0.8rem; padding: 0.6rem 1rem; bottom: 1rem; left: 1rem; right: 1rem; max-width: none; }
   }
+
+  /* MOBILE MÉDIO (481px–768px) — maioria dos Android/iPhones modernos */
+  @media (min-width: 481px) and (max-width: 768px) {
+    .content { padding: 1rem; }
+    .macro-grid { grid-template-columns: 1fr 1fr; }
+    .stats-grid { grid-template-columns: repeat(2, 1fr); }
+    .wellness-grid { grid-template-columns: 1fr 1fr; }
+    .countdown-number { font-size: 2rem; }
+    .nav-tab { padding: 0.75rem 0.9rem; font-size: 0.7rem; }
+  }
+
+  /* TABLET (769px–1024px) — iPad, tablets Android */
+  @media (min-width: 769px) and (max-width: 1024px) {
+    .content { padding: 1.25rem; max-width: 720px; }
+    .macro-grid { grid-template-columns: repeat(3, 1fr); }
+    .stats-grid { grid-template-columns: repeat(3, 1fr); }
+  }
+
+  /* PREVENÇÃO geral de overflow horizontal em qualquer tela */
+  * { box-sizing: border-box; }
+  img, table { max-width: 100%; }
+  pre, code { white-space: pre-wrap; word-break: break-word; }
+  input, textarea, select { max-width: 100%; }
+
 </style>
 </head>
 <body>
@@ -1128,6 +1218,13 @@
 
   <!-- CHECK-IN -->
   <div id="tab-checkin" class="content hidden">
+
+    <!-- FREQUÊNCIA — visível só pro treinador -->
+    <div id="checkin-frequencia-card" class="card hidden">
+      <div class="card-title">📅 Frequência de <span class="accent">Presença</span></div>
+      <div id="checkin-frequencia-conteudo"></div>
+    </div>
+
     <div class="card">
       <div class="card-title">✅ Check-in — <span class="accent" id="checkin-data-label">Hoje</span></div>
 
@@ -1163,8 +1260,14 @@
       </div>
 
       <div class="input-group">
-        <label>Observações</label>
+        <label>Observações do Atleta</label>
         <textarea id="checkin-obs" rows="3" placeholder="Como foi o treino hoje?"></textarea>
+      </div>
+
+      <!-- Observação do treinador — só aparece no perfil treinador -->
+      <div id="checkin-obs-treinador-group" class="input-group hidden">
+        <label style="color:var(--dourado);">📝 Anotação do Treinador <small style="color:var(--cinza);font-weight:normal;">(só você vê)</small></label>
+        <textarea id="checkin-obs-treinador" rows="3" placeholder="Ex: Atleta chegou cansado, reduzi o volume. Jab melhorou. Monitorar ombro direito..."></textarea>
       </div>
 
       <button class="btn-primary" onclick="salvarCheckin()">SALVAR CHECK-IN</button>
@@ -1183,6 +1286,16 @@
     <div class="section-header">
       <div class="section-title">Avaliações Físicas</div>
       <button class="btn-gold" onclick="gerarProtocoloTestes()">🤖 PROTOCOLO IA</button>
+    </div>
+
+    <!-- SELETOR DE ATLETA -->
+    <div class="card" style="padding:1rem;">
+      <div style="font-size:0.7rem;letter-spacing:0.15em;color:var(--cinza);text-transform:uppercase;margin-bottom:0.6rem;">Atleta</div>
+      <div style="display:flex;align-items:center;gap:0.75rem;">
+        <select id="avaliacoes-select-atleta" onchange="selecionarAtletaAvaliacao(this.value)"
+          style="flex:1;background:var(--grafite);border:1px solid var(--borda);border-radius:6px;padding:0.6rem;color:var(--branco);font-size:0.9rem;">
+        </select>
+      </div>
     </div>
 
     <div id="avaliacoes-atleta-atual" style="font-size:0.8rem;color:var(--dourado);font-weight:600;margin-bottom:0.75rem;display:flex;align-items:center;gap:0.4rem;">
@@ -1559,20 +1672,31 @@
       <div class="section-title">Relatórios</div>
     </div>
 
+    <div class="card" style="border-color:var(--dourado);">
+      <div class="card-title">🔗 Perfil <span class="accent">Público</span><br><small style="font-size:0.75rem;color:var(--cinza);font-family:'Inter',sans-serif;letter-spacing:0;">Link para agente / empresário / promotora</small></div>
+      <div style="font-size:0.78rem;color:var(--cinza);margin-bottom:1rem;">Gera um link único do atleta. Quem receber abre no navegador e vê o perfil completo — cartel, prep, sonho, evolução — sem precisar de login.</div>
+      <div id="link-publico-box" class="hidden" style="background:var(--grafite);border:1px solid var(--borda);border-radius:6px;padding:0.75rem;margin-bottom:0.75rem;">
+        <div style="font-size:0.68rem;color:var(--cinza);margin-bottom:0.3rem;text-transform:uppercase;letter-spacing:0.1em;">Link gerado</div>
+        <div id="link-publico-url" style="font-size:0.78rem;word-break:break-all;color:var(--dourado);margin-bottom:0.5rem;"></div>
+        <button class="btn-secondary" onclick="copiarLinkPublico()" style="width:100%;font-size:0.78rem;">📋 COPIAR LINK</button>
+      </div>
+      <button class="btn-gold" onclick="gerarLinkPublico()" style="width:100%;">⚡ GERAR LINK DO ATLETA</button>
+    </div>
+
     <div class="card">
-      <div class="card-title">📄 Relatório <span class="accent">Completo</span> (Treinador)</div>
+      <div class="card-title">📄 Relatório <span class="accent">Completo</span><br><small style="font-size:0.75rem;color:var(--cinza);font-family:'Inter',sans-serif;letter-spacing:0;">Uso interno — treinador</small></div>
       <div style="font-size:0.78rem;color:var(--cinza);margin-bottom:1rem;">Periodização, volume de treino, evolução das avaliações, check-ins e fadiga. Documento interno detalhado.</div>
       <button class="btn-primary" onclick="gerarRelatorioCompleto()" style="width:100%;">GERAR PDF COMPLETO</button>
     </div>
 
     <div class="card">
-      <div class="card-title">📋 Relatório <span class="accent">Profissional</span> (Promotora/Agentes)</div>
+      <div class="card-title">📋 Relatório <span class="accent">Profissional</span><br><small style="font-size:0.75rem;color:var(--cinza);font-family:'Inter',sans-serif;letter-spacing:0;">Promotora / Agentes</small></div>
       <div style="font-size:0.78rem;color:var(--cinza);margin-bottom:1rem;">Volume de treino, conformidade com o plano, evolução física e a narrativa do atleta (sonho, motivação e o que a luta representa). Preencha o questionário em "Propósito" para incluir essa parte.</div>
       <button class="btn-primary" onclick="gerarRelatorioProfissional()" style="width:100%;">GERAR PDF PROFISSIONAL</button>
     </div>
 
     <div class="card">
-      <div class="card-title">🥊 Relatório <span class="accent">Simplificado</span> (Atleta)</div>
+      <div class="card-title">🥊 Relatório <span class="accent">Simplificado</span><br><small style="font-size:0.75rem;color:var(--cinza);font-family:'Inter',sans-serif;letter-spacing:0;">Para o atleta</small></div>
       <div style="font-size:0.78rem;color:var(--cinza);margin-bottom:1rem;">Resumo do que ele treinou, horas totais e evolução, em linguagem simples e direta.</div>
       <button class="btn-primary" onclick="gerarRelatorioAtleta()" style="width:100%;">GERAR PDF PARA O ATLETA</button>
     </div>
@@ -1791,6 +1915,65 @@
 </div>
 
 <div class="toast" id="toast"></div>
+
+<!-- MODAL PRIMEIRO ACESSO -->
+<div class="modal-overlay hidden" id="modal-primeiro-acesso" style="z-index:300;">
+  <div class="modal" style="max-width:480px;">
+    <div style="text-align:center;margin-bottom:1.5rem;">
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:2rem;letter-spacing:0.1em;">BEM-VINDO, <span style="color:var(--vermelho);" id="pv-nome-boas-vindas">ATLETA</span></div>
+      <div style="font-size:0.82rem;color:var(--cinza);margin-top:0.3rem;">Complete seu perfil antes de começar. Leva menos de 2 minutos.</div>
+    </div>
+
+    <div class="input-group">
+      <label>Nome Completo *</label>
+      <input type="text" id="pv-nome" placeholder="Seu nome completo">
+    </div>
+    <div class="input-group">
+      <label>Apelido / Nome de Luta</label>
+      <input type="text" id="pv-apelido" placeholder="Ex: Maguila">
+    </div>
+    <div class="input-group">
+      <label>Data de Nascimento</label>
+      <input type="date" id="pv-nascimento">
+    </div>
+    <div class="input-group">
+      <label>Categoria de Peso</label>
+      <input type="text" id="pv-categoria" placeholder="Ex: Meio-médio (69kg)">
+    </div>
+    <div class="input-group">
+      <label>Cidade / Academia de Origem</label>
+      <input type="text" id="pv-cidade" placeholder="Ex: Rio Claro - SP / Academia X">
+    </div>
+    <div class="input-group">
+      <label>Estilo de Luta</label>
+      <select id="pv-estilo">
+        <option value="ortodoxo">Ortodoxo</option>
+        <option value="canhoto">Canhoto (Southpaw)</option>
+      </select>
+    </div>
+    <div class="input-group">
+      <label>Tempo de Experiência no Boxe</label>
+      <input type="text" id="pv-experiencia" placeholder="Ex: 5 anos">
+    </div>
+
+    <div style="font-size:0.7rem;letter-spacing:0.1em;color:var(--dourado);text-transform:uppercase;margin:1rem 0 0.5rem;">Cartel Profissional</div>
+    <div style="display:flex;gap:0.6rem;">
+      <div class="input-group" style="flex:1;"><label>Vitórias</label><input type="number" id="pv-pro-v" min="0" placeholder="0"></div>
+      <div class="input-group" style="flex:1;"><label>Derrotas</label><input type="number" id="pv-pro-d" min="0" placeholder="0"></div>
+      <div class="input-group" style="flex:1;"><label>Empates</label><input type="number" id="pv-pro-e" min="0" placeholder="0"></div>
+    </div>
+
+    <div style="font-size:0.7rem;letter-spacing:0.1em;color:var(--dourado);text-transform:uppercase;margin:1rem 0 0.5rem;">Cartel Amador</div>
+    <div style="display:flex;gap:0.6rem;">
+      <div class="input-group" style="flex:1;"><label>Vitórias</label><input type="number" id="pv-am-v" min="0" placeholder="0"></div>
+      <div class="input-group" style="flex:1;"><label>Derrotas</label><input type="number" id="pv-am-d" min="0" placeholder="0"></div>
+      <div class="input-group" style="flex:1;"><label>Empates</label><input type="number" id="pv-am-e" min="0" placeholder="0"></div>
+    </div>
+
+    <button class="btn-primary" onclick="salvarPrimeiroAcesso()" style="width:100%;margin-top:1rem;">ENTRAR NO APP</button>
+    <button class="btn-secondary" onclick="pularPrimeiroAcesso()" style="width:100%;margin-top:0.5rem;font-size:0.78rem;">Preencher depois</button>
+  </div>
+</div>
 
 <script>
 // ======= FIREBASE =======
@@ -2380,6 +2563,78 @@ async function fazerLoginAtleta() {
   document.getElementById('nav-tabs-atleta').classList.remove('hidden');
   document.getElementById('btn-trocar-atleta').classList.add('hidden');
   atualizarUI();
+
+  // Detectar primeiro acesso — se não tiver cartel preenchido, abre o modal
+  const c = atleta.cartel || {};
+  const primeiroAcesso = !c.nomeCompleto && !atleta.primeiroAcessoConcluido;
+  if (primeiroAcesso) {
+    abrirPrimeiroAcesso(atleta);
+  } else {
+    showTab('sessao');
+  }
+}
+
+function abrirPrimeiroAcesso(atleta) {
+  // Pré-preencher com dados já existentes
+  const c = atleta.cartel || {};
+  document.getElementById('pv-nome-boas-vindas').textContent = atleta.apelido || atleta.nome || 'ATLETA';
+  document.getElementById('pv-nome').value = c.nomeCompleto || atleta.nome || '';
+  document.getElementById('pv-apelido').value = c.apelido || atleta.apelido || '';
+  document.getElementById('pv-nascimento').value = c.nascimento || '';
+  document.getElementById('pv-categoria').value = c.categoria || '';
+  document.getElementById('pv-cidade').value = c.cidadeAcademia || '';
+  document.getElementById('pv-estilo').value = c.estilo || 'ortodoxo';
+  document.getElementById('pv-experiencia').value = c.experiencia || '';
+  document.getElementById('pv-pro-v').value = c.proV ?? '';
+  document.getElementById('pv-pro-d').value = c.proD ?? '';
+  document.getElementById('pv-pro-e').value = c.proE ?? '';
+  document.getElementById('pv-am-v').value = c.amV ?? '';
+  document.getElementById('pv-am-d').value = c.amD ?? '';
+  document.getElementById('pv-am-e').value = c.amE ?? '';
+  document.getElementById('modal-primeiro-acesso').classList.remove('hidden');
+}
+
+async function salvarPrimeiroAcesso() {
+  const a = state.atletaAtual;
+  if (!a) return;
+
+  const nome = document.getElementById('pv-nome').value.trim();
+  if (!nome) { showToast('Preencha seu nome completo', 'erro'); return; }
+
+  if (!a.cartel) a.cartel = {};
+  a.cartel.nomeCompleto = nome;
+  a.cartel.apelido = document.getElementById('pv-apelido').value.trim();
+  a.cartel.nascimento = document.getElementById('pv-nascimento').value;
+  a.cartel.categoria = document.getElementById('pv-categoria').value.trim();
+  a.cartel.cidadeAcademia = document.getElementById('pv-cidade').value.trim();
+  a.cartel.estilo = document.getElementById('pv-estilo').value;
+  a.cartel.experiencia = document.getElementById('pv-experiencia').value.trim();
+  a.cartel.proV = parseInt(document.getElementById('pv-pro-v').value) || 0;
+  a.cartel.proD = parseInt(document.getElementById('pv-pro-d').value) || 0;
+  a.cartel.proE = parseInt(document.getElementById('pv-pro-e').value) || 0;
+  a.cartel.amV = parseInt(document.getElementById('pv-am-v').value) || 0;
+  a.cartel.amD = parseInt(document.getElementById('pv-am-d').value) || 0;
+  a.cartel.amE = parseInt(document.getElementById('pv-am-e').value) || 0;
+  a.primeiroAcessoConcluido = true;
+
+  // Atualizar nome/apelido principal do atleta também
+  if (a.cartel.apelido) a.apelido = a.cartel.apelido;
+  a.nome = nome;
+
+  await salvarEstado();
+  document.getElementById('modal-primeiro-acesso').classList.add('hidden');
+  atualizarUI();
+  showToast('Perfil salvo! Bem-vindo ao PADOTY BOXING 🥊');
+  showTab('sessao');
+}
+
+async function pularPrimeiroAcesso() {
+  const a = state.atletaAtual;
+  if (a) {
+    a.primeiroAcessoConcluido = true;
+    await salvarEstado();
+  }
+  document.getElementById('modal-primeiro-acesso').classList.add('hidden');
   showTab('sessao');
 }
 
@@ -3408,8 +3663,13 @@ function salvarEdicaoSessao() {
 
 // ======= CHECK-IN =======
 function renderCheckin() {
+  const souAtleta = state.perfil === 'atleta';
   const hoje = new Date().toLocaleDateString('pt-BR');
   document.getElementById('checkin-data-label').textContent = hoje;
+
+  // Mostrar/esconder campo de observação do treinador
+  const obsGroup = document.getElementById('checkin-obs-treinador-group');
+  if (obsGroup) obsGroup.classList.toggle('hidden', souAtleta);
 
   // PSE
   const pscEl = document.getElementById('pse-scale');
@@ -3421,8 +3681,17 @@ function renderCheckin() {
   renderStars('stars-sono', 'sono');
   renderStars('stars-disposicao', 'disposicao');
 
-  // Histórico
+  // Frequência — só pro treinador
   const a = state.atletaAtual;
+  const freqCard = document.getElementById('checkin-frequencia-card');
+  if (!souAtleta && a && a.checkins?.length > 0) {
+    freqCard.classList.remove('hidden');
+    renderFrequencia(a);
+  } else {
+    freqCard?.classList.add('hidden');
+  }
+
+  // Histórico
   const hist = document.getElementById('checkin-historico');
   if (!a || a.checkins.length === 0) {
     hist.innerHTML = '<div style="font-size:0.8rem;color:var(--cinza);">Nenhum check-in registrado ainda.</div>';
@@ -3432,9 +3701,76 @@ function renderCheckin() {
         <div class="nota-data">${formatarData(c.data)} · PSE: ${c.pse}/10 · Sono: ${'⭐'.repeat(c.sono)} · Disposição: ${'⭐'.repeat(c.disposicao)}${c.peso ? ` · ⚖️ ${c.peso}kg` : ''}</div>
         ${c.dor ? `<div style="font-size:0.78rem;color:var(--amarelo);margin-bottom:0.2rem;">⚠️ ${c.dor}</div>` : ''}
         ${c.obs ? `<div class="nota-texto">${c.obs}</div>` : ''}
+        ${(!souAtleta && c.obsTreinador) ? `<div style="font-size:0.78rem;color:var(--dourado);margin-top:0.3rem;border-top:1px solid var(--borda);padding-top:0.3rem;">📝 ${c.obsTreinador}</div>` : ''}
       </div>
     `).join('');
   }
+}
+
+function renderFrequencia(a) {
+  const el = document.getElementById('checkin-frequencia-conteudo');
+  if (!el || !a.checkins?.length) return;
+
+  const total = a.checkins.length;
+  const hoje = new Date();
+
+  // Frequência nos últimos 7 dias
+  const ultimos7 = a.checkins.filter(c => {
+    const d = new Date(c.data + 'T12:00:00');
+    return (hoje - d) / (1000*60*60*24) <= 7;
+  }).length;
+
+  // Frequência nos últimos 30 dias
+  const ultimos30 = a.checkins.filter(c => {
+    const d = new Date(c.data + 'T12:00:00');
+    return (hoje - d) / (1000*60*60*24) <= 30;
+  }).length;
+
+  // Adesão ao plano (checkins vs sessões programadas até hoje)
+  let programadas = 0;
+  if (a.periodizacao) {
+    const hojeStr = hoje.toISOString().split('T')[0];
+    a.periodizacao.semanas.forEach(sem => {
+      sem.sessoes.forEach(s => {
+        if (s.data <= hojeStr) programadas++;
+      });
+    });
+  }
+  const adesao = programadas > 0 ? Math.round((total / programadas) * 100) : null;
+
+  // Último check-in
+  const ultimo = a.checkins[a.checkins.length - 1];
+  const diasDesdeUltimo = ultimo ? Math.floor((hoje - new Date(ultimo.data + 'T12:00:00')) / (1000*60*60*24)) : null;
+
+  el.innerHTML = `
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.6rem;margin-bottom:0.75rem;">
+      <div style="background:var(--grafite);border-radius:6px;padding:0.75rem;text-align:center;">
+        <div style="font-size:0.65rem;color:var(--cinza);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:0.2rem;">Total</div>
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:1.8rem;color:var(--verde);">${total}</div>
+        <div style="font-size:0.65rem;color:var(--cinza);">sessões</div>
+      </div>
+      <div style="background:var(--grafite);border-radius:6px;padding:0.75rem;text-align:center;">
+        <div style="font-size:0.65rem;color:var(--cinza);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:0.2rem;">Últimos 7 dias</div>
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:1.8rem;color:${ultimos7 >= 4 ? 'var(--verde)' : ultimos7 >= 2 ? 'var(--dourado)' : 'var(--vermelho)'};">${ultimos7}</div>
+        <div style="font-size:0.65rem;color:var(--cinza);">sessões</div>
+      </div>
+      <div style="background:var(--grafite);border-radius:6px;padding:0.75rem;text-align:center;">
+        <div style="font-size:0.65rem;color:var(--cinza);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:0.2rem;">Últimos 30 dias</div>
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:1.8rem;color:var(--branco);">${ultimos30}</div>
+        <div style="font-size:0.65rem;color:var(--cinza);">sessões</div>
+      </div>
+      ${adesao !== null ? `
+      <div style="background:var(--grafite);border-radius:6px;padding:0.75rem;text-align:center;">
+        <div style="font-size:0.65rem;color:var(--cinza);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:0.2rem;">Adesão ao plano</div>
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:1.8rem;color:${adesao >= 80 ? 'var(--verde)' : adesao >= 60 ? 'var(--dourado)' : 'var(--vermelho)'};">${adesao}%</div>
+        <div style="font-size:0.65rem;color:var(--cinza);">${total}/${programadas} sessões</div>
+      </div>` : ''}
+    </div>
+    ${diasDesdeUltimo !== null ? `
+    <div style="font-size:0.78rem;color:${diasDesdeUltimo === 0 ? 'var(--verde)' : diasDesdeUltimo <= 2 ? 'var(--cinza)' : 'var(--vermelho)'};text-align:center;">
+      ${diasDesdeUltimo === 0 ? '✅ Check-in feito hoje' : diasDesdeUltimo === 1 ? '⏱ Último check-in ontem' : `⚠️ Sem check-in há ${diasDesdeUltimo} dias`}
+    </div>` : ''}
+  `;
 }
 
 function selecionarPSE(n) {
@@ -3466,6 +3802,7 @@ function salvarCheckin() {
 
   const hoje = new Date().toISOString().split('T')[0];
   const pesoVal = parseFloat(document.getElementById('checkin-peso').value);
+  const obsTreinadorEl = document.getElementById('checkin-obs-treinador');
 
   const checkin = {
     data: hoje,
@@ -3475,13 +3812,14 @@ function salvarCheckin() {
     disposicao: state.disposicaoRating || 3,
     dor: document.getElementById('checkin-dor').value.trim(),
     obs: document.getElementById('checkin-obs').value.trim(),
-    rounds: 10, // estimado
+    obsTreinador: (obsTreinadorEl && state.perfil === 'treinador') ? obsTreinadorEl.value.trim() : '',
+    rounds: 10,
   };
 
   if (!a.checkins) a.checkins = [];
   a.checkins.push(checkin);
 
-  // Registrar peso também na lista de pesos (usada pelo dashboard do treinador)
+  // Registrar peso na lista de pesos (dashboard do treinador)
   if (checkin.peso) {
     if (!a.pesos) a.pesos = [];
     a.pesos.push({ data: hoje, valor: checkin.peso });
@@ -3496,6 +3834,7 @@ function salvarCheckin() {
   document.getElementById('checkin-peso').value = '';
   document.getElementById('checkin-dor').value = '';
   document.getElementById('checkin-obs').value = '';
+  if (obsTreinadorEl) obsTreinadorEl.value = '';
 
   showToast('Check-in salvo!');
   renderCheckin();
@@ -3803,9 +4142,26 @@ async function salvarTesteModal() {
   renderAvaliacoes();
 }
 
+function selecionarAtletaAvaliacao(atletaId) {
+  const atleta = state.atletas.find(a => a.id === atletaId);
+  if (atleta) {
+    state.atletaAtual = atleta;
+    salvarEstado();
+    renderAvaliacoes();
+  }
+}
+
 function renderAvaliacoes() {
   const a = state.atletaAtual;
   const hist = document.getElementById('avaliacoes-historico');
+
+  // Popular select de atletas
+  const sel = document.getElementById('avaliacoes-select-atleta');
+  if (sel) {
+    sel.innerHTML = state.atletas.map(at =>
+      `<option value="${at.id}" ${at.id === a?.id ? 'selected' : ''}>${at.apelido || at.nome}</option>`
+    ).join('');
+  }
 
   const nomeTopoEl = document.getElementById('avaliacoes-atleta-nome');
   if (nomeTopoEl) nomeTopoEl.textContent = a ? (a.apelido || a.nome) : 'Nenhum atleta selecionado';
@@ -5039,6 +5395,169 @@ async function salvarCartel() {
   showToast('Cartel salvo com sucesso!');
 }
 
+// ======= LINK PÚBLICO (AGENTE/EMPRESÁRIO) =======
+function gerarLinkPublico() {
+  const a = state.atletaAtual;
+  if (!a) { showToast('Selecione um atleta', 'erro'); return; }
+
+  // Serializar dados do atleta em base64 pra incluir no link
+  const dados = {
+    nome: a.nome,
+    apelido: a.apelido,
+    cartel: a.cartel || {},
+    proposito: {
+      sonho: a.proposito?.sonho,
+      metaLuta: a.proposito?.metaLuta,
+      motivacao: a.proposito?.motivacao,
+    },
+    dataLuta: a.dataLuta,
+    formato: a.formato,
+    categoria: a.categoria,
+    nivel: a.nivel,
+    checkins: a.checkins?.length || 0,
+    inicioPrep: a.inicioPrep,
+    geradoEm: new Date().toISOString().split('T')[0],
+  };
+
+  const encoded = btoa(unescape(encodeURIComponent(JSON.stringify(dados))));
+  const baseUrl = window.location.href.split('#')[0].split('?')[0];
+  const link = `${baseUrl}?perfil=${encoded}`;
+
+  document.getElementById('link-publico-url').textContent = link;
+  document.getElementById('link-publico-box').classList.remove('hidden');
+  showToast('Link gerado! Copie e envie para o agente.');
+}
+
+function copiarLinkPublico() {
+  const url = document.getElementById('link-publico-url').textContent;
+  navigator.clipboard.writeText(url)
+    .then(() => showToast('Link copiado! 📋'))
+    .catch(() => {
+      // Fallback pra navegadores mais antigos
+      const el = document.createElement('textarea');
+      el.value = url;
+      document.body.appendChild(el);
+      el.select();
+      document.execCommand('copy');
+      document.body.removeChild(el);
+      showToast('Link copiado! 📋');
+    });
+}
+
+// ======= PÁGINA PÚBLICA (acessada pelo agente) =======
+function verificarModoPublico() {
+  const params = new URLSearchParams(window.location.search);
+  const perfil = params.get('perfil');
+  if (!perfil) return false;
+
+  try {
+    const dados = JSON.parse(decodeURIComponent(escape(atob(perfil))));
+    mostrarPaginaPublica(dados);
+    return true;
+  } catch(e) {
+    console.warn('Link inválido ou expirado');
+    return false;
+  }
+}
+
+function mostrarPaginaPublica(d) {
+  // Esconder tudo e mostrar página pública
+  document.body.style.background = '#0A0A0A';
+  document.body.innerHTML = `
+  <div style="min-height:100vh;background:#0A0A0A;color:#F5F5F0;font-family:'Inter',sans-serif;padding:0;">
+
+    <!-- Header -->
+    <div style="background:#141414;border-bottom:1px solid #333;padding:1rem 1.5rem;display:flex;align-items:center;justify-content:space-between;">
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:1.4rem;letter-spacing:0.15em;">
+        PADOTY <span style="color:#C8102E;">BOXING</span>
+      </div>
+      <div style="font-size:0.7rem;color:#888;letter-spacing:0.1em;">PERFIL DO ATLETA</div>
+    </div>
+
+    <div style="max-width:680px;margin:0 auto;padding:1.5rem;">
+
+      <!-- Identidade -->
+      <div style="background:linear-gradient(135deg,#1a0005,#1A1A1A);border:1px solid #C8102E;border-radius:10px;padding:1.5rem;margin-bottom:1rem;text-align:center;">
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:2.5rem;letter-spacing:0.1em;color:#F5F5F0;">${d.apelido || d.nome}</div>
+        ${d.apelido ? `<div style="font-size:0.9rem;color:#888;margin-top:0.2rem;">${d.nome}</div>` : ''}
+        <div style="display:flex;justify-content:center;gap:1rem;margin-top:1rem;flex-wrap:wrap;">
+          ${d.cartel?.categoria ? `<span style="background:#1f0508;border:1px solid #C8102E;border-radius:20px;padding:0.3rem 0.8rem;font-size:0.75rem;color:#F5F5F0;">${d.cartel.categoria}</span>` : ''}
+          ${d.cartel?.estilo ? `<span style="background:#1A1A1A;border:1px solid #444;border-radius:20px;padding:0.3rem 0.8rem;font-size:0.75rem;color:#888;">${d.cartel.estilo === 'canhoto' ? 'Southpaw' : 'Ortodoxo'}</span>` : ''}
+          ${d.nivel ? `<span style="background:#1A1A1A;border:1px solid #444;border-radius:20px;padding:0.3rem 0.8rem;font-size:0.75rem;color:#888;">${d.nivel}</span>` : ''}
+        </div>
+      </div>
+
+      <!-- Próxima luta -->
+      ${d.dataLuta ? `
+      <div style="background:#141414;border:1px solid #333;border-radius:8px;padding:1.25rem;margin-bottom:1rem;display:flex;align-items:center;justify-content:space-between;">
+        <div>
+          <div style="font-size:0.65rem;letter-spacing:0.15em;color:#888;text-transform:uppercase;">Próxima Luta</div>
+          <div style="font-family:'Bebas Neue',sans-serif;font-size:1.4rem;color:#C8102E;">${d.dataLuta.split('-').reverse().join('/')}</div>
+          ${d.formato ? `<div style="font-size:0.78rem;color:#888;">${d.formato}</div>` : ''}
+        </div>
+        <div style="text-align:right;">
+          <div style="font-size:0.65rem;letter-spacing:0.15em;color:#888;text-transform:uppercase;">Prep iniciada em</div>
+          <div style="font-size:0.85rem;">${d.inicioPrep ? d.inicioPrep.split('-').reverse().join('/') : '—'}</div>
+          <div style="font-size:0.72rem;color:#888;">${d.checkins} sessões registradas</div>
+        </div>
+      </div>` : ''}
+
+      <!-- Cartel -->
+      ${(d.cartel?.proV != null || d.cartel?.amV != null) ? `
+      <div style="background:#141414;border:1px solid #333;border-radius:8px;padding:1.25rem;margin-bottom:1rem;">
+        <div style="font-size:0.65rem;letter-spacing:0.15em;color:#C9A84C;text-transform:uppercase;margin-bottom:0.75rem;">Cartel</div>
+        <div style="display:flex;gap:1rem;">
+          <div style="flex:1;background:#1A1A1A;border-radius:6px;padding:0.75rem;text-align:center;">
+            <div style="font-size:0.65rem;color:#888;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:0.3rem;">Profissional</div>
+            <div style="font-family:'Bebas Neue',sans-serif;font-size:1.4rem;">${d.cartel.proV ?? 0}V · ${d.cartel.proD ?? 0}D · ${d.cartel.proE ?? 0}E</div>
+          </div>
+          <div style="flex:1;background:#1A1A1A;border-radius:6px;padding:0.75rem;text-align:center;">
+            <div style="font-size:0.65rem;color:#888;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:0.3rem;">Amador</div>
+            <div style="font-family:'Bebas Neue',sans-serif;font-size:1.4rem;">${d.cartel.amV ?? 0}V · ${d.cartel.amD ?? 0}D · ${d.cartel.amE ?? 0}E</div>
+          </div>
+        </div>
+        ${d.cartel.experiencia ? `<div style="font-size:0.78rem;color:#888;margin-top:0.75rem;">⏱ ${d.cartel.experiencia} de experiência no boxe</div>` : ''}
+        ${d.cartel.cidadeAcademia ? `<div style="font-size:0.78rem;color:#888;margin-top:0.3rem;">📍 ${d.cartel.cidadeAcademia}</div>` : ''}
+      </div>` : ''}
+
+      <!-- Propósito -->
+      ${(d.proposito?.sonho || d.proposito?.metaLuta || d.proposito?.motivacao) ? `
+      <div style="background:#141414;border:1px solid #333;border-radius:8px;padding:1.25rem;margin-bottom:1rem;">
+        <div style="font-size:0.65rem;letter-spacing:0.15em;color:#C9A84C;text-transform:uppercase;margin-bottom:0.75rem;">Sobre o Atleta</div>
+        ${d.proposito.sonho ? `
+          <div style="margin-bottom:0.75rem;">
+            <div style="font-size:0.68rem;color:#888;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:0.3rem;">Objetivo de carreira</div>
+            <div style="font-size:0.88rem;line-height:1.6;">${d.proposito.sonho}</div>
+          </div>` : ''}
+        ${d.proposito.metaLuta ? `
+          <div style="margin-bottom:0.75rem;">
+            <div style="font-size:0.68rem;color:#888;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:0.3rem;">O que esta luta representa</div>
+            <div style="font-size:0.88rem;line-height:1.6;">${d.proposito.metaLuta}</div>
+          </div>` : ''}
+        ${d.proposito.motivacao ? `
+          <div>
+            <div style="font-size:0.68rem;color:#888;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:0.3rem;">Motivação</div>
+            <div style="font-size:0.88rem;line-height:1.6;">${d.proposito.motivacao}</div>
+          </div>` : ''}
+      </div>` : ''}
+
+      <!-- Rodapé -->
+      <div style="text-align:center;padding:1.5rem 0;border-top:1px solid #222;margin-top:1rem;">
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:1rem;letter-spacing:0.15em;color:#888;">PADOTY <span style="color:#C8102E;">BOXING</span></div>
+        <div style="font-size:0.68rem;color:#555;margin-top:0.3rem;">CREF 142588-G/SP · Fábio · PADOTY Saúde e Movimento</div>
+        <div style="font-size:0.65rem;color:#444;margin-top:0.2rem;">Perfil gerado em ${d.geradoEm ? d.geradoEm.split('-').reverse().join('/') : '—'}</div>
+      </div>
+
+    </div>
+  </div>`;
+
+  // Carregar fonte Bebas Neue
+  const link = document.createElement('link');
+  link.rel = 'stylesheet';
+  link.href = 'https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600&display=swap';
+  document.head.appendChild(link);
+}
+
 // Enter no login
 document.getElementById('login-pass').addEventListener('keydown', e => {
   if (e.key === 'Enter') fazerLogin();
@@ -5046,6 +5565,13 @@ document.getElementById('login-pass').addEventListener('keydown', e => {
 document.getElementById('login-atleta-senha').addEventListener('keydown', e => {
   if (e.key === 'Enter') fazerLogin();
 });
+
+// Verificar modo público ao carregar
+// Se a URL tiver ?perfil=... mostra a página do agente em vez do login
+if (!verificarModoPublico()) {
+  // Modo normal — app com login
+  document.getElementById('login-screen').style.display = 'flex';
+}
 </script>
 </body>
 </html>
