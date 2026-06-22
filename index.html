@@ -4344,7 +4344,7 @@ function renderEvolucaoFisica(a) {
   const card = document.getElementById('perfil-evolucao-card');
   const el = document.getElementById('perfil-evolucao-conteudo');
 
-  if (!a.avaliacoes || a.avaliacoes.length < 2) {
+  if (!a.avaliacoes || a.avaliacoes.length === 0) {
     card.classList.add('hidden');
     return;
   }
@@ -4360,18 +4360,28 @@ function renderEvolucaoFisica(a) {
       .filter(av => av.resultados?.[testeId]?.[campo])
       .map(av => ({ data: av.data, valor: parseFloat(av.resultados[testeId][campo]) }));
 
-    if (registros.length < 2) return;
+    if (registros.length === 0) return;
+
+    const campoConfig = t.campos.find(c => c.id === campo);
+    const unidade = campoConfig?.unit || '';
+    const nome = t.nome.replace(/^\S+\s/, '');
+
+    if (registros.length === 1) {
+      // Só uma avaliação ainda — mostra o valor atual sem comparação
+      linhas.push({ nome, unico: true, valor: registros[0].valor, unidade });
+      return;
+    }
 
     const primeiro = registros[0];
     const ultimo = registros[registros.length - 1];
-    if (primeiro.valor === ultimo.valor) return;
+    if (primeiro.valor === ultimo.valor) {
+      linhas.push({ nome, unico: true, valor: ultimo.valor, unidade, estavel: true });
+      return;
+    }
 
     const melhorou = ultimo.valor > primeiro.valor;
     const diff = (ultimo.valor - primeiro.valor).toFixed(1);
-    const campoConfig = t.campos.find(c => c.id === campo);
-    const unidade = campoConfig?.unit || '';
-
-    linhas.push({ nome: t.nome.replace(/^\S+\s/, ''), primeiro: primeiro.valor, ultimo: ultimo.valor, unidade, melhorou, diff });
+    linhas.push({ nome, primeiro: primeiro.valor, ultimo: ultimo.valor, unidade, melhorou, diff });
   });
 
   if (linhas.length === 0) {
@@ -4380,7 +4390,15 @@ function renderEvolucaoFisica(a) {
   }
 
   card.classList.remove('hidden');
-  el.innerHTML = linhas.map(l => `
+  el.innerHTML = linhas.map(l => {
+    if (l.unico) {
+      return `
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:0.6rem 0;border-bottom:1px solid var(--borda);">
+          <div style="font-size:0.85rem;">${l.nome}</div>
+          <div style="font-size:0.8rem;color:var(--cinza);">${l.valor}${l.unidade}${l.estavel ? ' (estável)' : ' · 1ª avaliação'}</div>
+        </div>`;
+    }
+    return `
     <div style="display:flex;align-items:center;justify-content:space-between;padding:0.6rem 0;border-bottom:1px solid var(--borda);">
       <div style="font-size:0.85rem;">${l.nome}</div>
       <div style="display:flex;align-items:center;gap:0.5rem;">
@@ -4390,7 +4408,13 @@ function renderEvolucaoFisica(a) {
         </span>
       </div>
     </div>
-  `).join('');
+  `;
+  }).join('');
+
+  const temComparacao = linhas.some(l => !l.unico);
+  if (!temComparacao) {
+    el.innerHTML += `<div style="font-size:0.72rem;color:var(--cinza);margin-top:0.6rem;font-style:italic;">Faça uma nova avaliação dos mesmos testes para ver sua evolução comparada.</div>`;
+  }
 }
 
 // ===== FEEDBACK DO TREINADOR =====
