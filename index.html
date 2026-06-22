@@ -1185,6 +1185,10 @@
       <button class="btn-gold" onclick="gerarProtocoloTestes()">🤖 PROTOCOLO IA</button>
     </div>
 
+    <div id="avaliacoes-atleta-atual" style="font-size:0.8rem;color:var(--dourado);font-weight:600;margin-bottom:0.75rem;display:flex;align-items:center;gap:0.4rem;">
+      🥊 <span id="avaliacoes-atleta-nome">—</span>
+    </div>
+
     <!-- TIPO DE AVALIAÇÃO -->
     <div class="card" style="padding:1rem;">
       <div style="font-size:0.7rem;letter-spacing:0.15em;color:var(--cinza);text-transform:uppercase;margin-bottom:0.75rem;">Tipo de Avaliação</div>
@@ -3707,10 +3711,13 @@ function selecionarTipoAv(btn) {
   tipoAvaliacao = btn.dataset.tipo;
 }
 
-function abrirModalTeste(key) {
+let _editandoAvIdx = null; // índice da avaliação sendo editada (null = nova)
+
+function abrirModalTeste(key, avIdx) {
   const t = TESTES_CONFIG[key];
   if (!t) return;
   _testeAtual = key;
+  _editandoAvIdx = avIdx ?? null;
 
   document.getElementById('modal-teste-titulo').textContent = t.nome;
   document.getElementById('modal-teste-ref').textContent = '📚 ' + t.ref;
@@ -3731,6 +3738,20 @@ function abrirModalTeste(key) {
   `).join('');
   document.getElementById('modal-teste-campos').innerHTML = campos;
 
+  // Se for edição, pré-popular com valores existentes
+  if (_editandoAvIdx != null) {
+    const a = state.atletaAtual;
+    const av = a?.avaliacoes?.[_editandoAvIdx];
+    const res = av?.resultados?.[key];
+    if (res) {
+      t.campos.forEach(c => {
+        const el = document.getElementById('mt_' + c.id);
+        if (el && res[c.id] != null) el.value = res[c.id];
+      });
+      atualizarClassificacaoModal();
+    }
+  }
+
   document.getElementById('modal-teste').classList.remove('hidden');
 }
 
@@ -3745,7 +3766,7 @@ function atualizarClassificacaoModal() {
   el.style.color = cl.cor;
 }
 
-function salvarTesteModal() {
+async function salvarTesteModal() {
   const a = state.atletaAtual;
   if (!a || !_testeAtual) return;
   const t = TESTES_CONFIG[_testeAtual];
@@ -3761,17 +3782,23 @@ function salvarTesteModal() {
 
   if (!a.avaliacoes) a.avaliacoes = [];
 
-  // Adicionar à avaliação do dia ou criar nova
-  const hoje = new Date().toISOString().split('T')[0];
-  let avHoje = a.avaliacoes.find(av => av.data === hoje && av.tipo === tipoAvaliacao);
-  if (!avHoje) {
-    avHoje = { data: hoje, tipo: tipoAvaliacao, resultados: {} };
-    a.avaliacoes.push(avHoje);
+  if (_editandoAvIdx != null && a.avaliacoes[_editandoAvIdx]) {
+    // Modo edição: atualiza o registro existente
+    a.avaliacoes[_editandoAvIdx].resultados[_testeAtual] = vals;
+  } else {
+    // Modo novo: adicionar à avaliação do dia ou criar nova
+    const hoje = new Date().toISOString().split('T')[0];
+    let avHoje = a.avaliacoes.find(av => av.data === hoje && av.tipo === tipoAvaliacao);
+    if (!avHoje) {
+      avHoje = { data: hoje, tipo: tipoAvaliacao, resultados: {} };
+      a.avaliacoes.push(avHoje);
+    }
+    avHoje.resultados[_testeAtual] = vals;
   }
-  avHoje.resultados[_testeAtual] = vals;
 
-  salvarEstado();
+  await salvarEstado();
   fecharModal('modal-teste');
+  _editandoAvIdx = null;
   showToast(`${t.nome.replace(/^[^ ]+ /,'')} salvo!`);
   renderAvaliacoes();
 }
@@ -3779,11 +3806,23 @@ function salvarTesteModal() {
 function renderAvaliacoes() {
   const a = state.atletaAtual;
   const hist = document.getElementById('avaliacoes-historico');
-  if (!a || !a.avaliacoes || a.avaliacoes.length === 0) {
-    hist.innerHTML = '<div style="font-size:0.8rem;color:var(--cinza);">Nenhuma avaliação registrada ainda.</div>';
+
+  const nomeTopoEl = document.getElementById('avaliacoes-atleta-nome');
+  if (nomeTopoEl) nomeTopoEl.textContent = a ? (a.apelido || a.nome) : 'Nenhum atleta selecionado';
+
+  if (!a) {
+    hist.innerHTML = '<div style="font-size:0.8rem;color:var(--cinza);">Nenhum atleta selecionado.</div>';
     return;
   }
-  hist.innerHTML = a.avaliacoes.slice().reverse().map(av => {
+  if (!a.avaliacoes || a.avaliacoes.length === 0) {
+    hist.innerHTML = `<div style="font-size:0.78rem;color:var(--dourado);font-weight:600;margin-bottom:0.6rem;">🥊 ${a.apelido || a.nome}</div>
+      <div style="font-size:0.8rem;color:var(--cinza);">Nenhuma avaliação registrada ainda.</div>`;
+    return;
+  }
+
+  let html = `<div style="font-size:0.78rem;color:var(--dourado);font-weight:600;margin-bottom:0.75rem;">🥊 Histórico de ${a.apelido || a.nome}</div>`;
+
+  html += a.avaliacoes.map((av, avIdx) => {
     const testesHTML = Object.entries(av.resultados || {}).map(([key, res]) => {
       const t = TESTES_CONFIG[key];
       if (!t) return '';
@@ -3794,12 +3833,16 @@ function renderAvaliacoes() {
         .map(c => `${c.label}: <b>${res[c.id]} ${c.unit}</b>`)
         .join(' · ');
       return `
-        <div style="display:flex;align-items:center;justify-content:space-between;padding:0.4rem 0;border-bottom:1px solid var(--borda);">
-          <div>
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:0.4rem 0;border-bottom:1px solid var(--borda);gap:0.5rem;">
+          <div style="flex:1;min-width:0;">
             <div style="font-size:0.82rem;">${t.nome}</div>
             <div style="font-size:0.75rem;color:var(--cinza);">${campos}</div>
           </div>
-          ${cl ? `<span style="font-size:0.7rem;color:${cl.cor};font-weight:600;flex-shrink:0;margin-left:0.5rem;">${cl.label}</span>` : ''}
+          ${cl ? `<span style="font-size:0.7rem;color:${cl.cor};font-weight:600;flex-shrink:0;">${cl.label}</span>` : ''}
+          <div style="display:flex;gap:0.3rem;flex-shrink:0;">
+            <button onclick="abrirModalTeste('${key}', ${avIdx})" title="Editar" style="background:none;border:1px solid var(--borda);color:var(--cinza);border-radius:4px;width:26px;height:26px;cursor:pointer;font-size:0.75rem;">✏️</button>
+            <button onclick="apagarTesteHistorico(${avIdx}, '${key}')" title="Apagar" style="background:none;border:1px solid var(--vermelho);color:var(--vermelho);border-radius:4px;width:26px;height:26px;cursor:pointer;font-size:0.75rem;">🗑️</button>
+          </div>
         </div>`;
     }).join('');
     return `
@@ -3811,6 +3854,27 @@ function renderAvaliacoes() {
         ${testesHTML || '<div style="font-size:0.8rem;color:var(--cinza);">Sem resultados</div>'}
       </div>`;
   }).join('');
+
+  hist.innerHTML = html;
+}
+
+function apagarTesteHistorico(avIdx, testeKey) {
+  const a = state.atletaAtual;
+  if (!a || !a.avaliacoes?.[avIdx]) return;
+  const t = TESTES_CONFIG[testeKey];
+
+  if (!confirm(`Apagar o resultado de "${t?.nome.replace(/^\S+\s/,'') || testeKey}" desta data?`)) return;
+
+  delete a.avaliacoes[avIdx].resultados[testeKey];
+
+  // Se a avaliação ficou sem nenhum teste, remove o registro do dia inteiro
+  if (Object.keys(a.avaliacoes[avIdx].resultados).length === 0) {
+    a.avaliacoes.splice(avIdx, 1);
+  }
+
+  salvarEstado();
+  showToast('Resultado apagado.');
+  renderAvaliacoes();
 }
 
 function salvarAvaliacao() {} // mantida por compatibilidade
