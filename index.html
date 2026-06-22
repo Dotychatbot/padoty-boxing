@@ -1420,6 +1420,105 @@
       <button class="btn-primary" onclick="trocarSenhaAtleta()">SALVAR NOVA SENHA</button>
     </div>
 
+    <!-- CARTEL — preenchido pelo atleta -->
+    <div id="perfil-cartel-form" class="card hidden">
+      <div class="card-title">🥊 Meu <span class="accent">Cartel</span></div>
+      <div style="font-size:0.78rem;color:var(--cinza);margin-bottom:1rem;">Seus dados e histórico esportivo. Preencha com atenção — essas informações ficam disponíveis pro seu treinador.</div>
+
+      <div class="input-group">
+        <label>Nome Completo</label>
+        <input type="text" id="cartel-nome-completo" placeholder="Seu nome completo">
+      </div>
+      <div class="input-group">
+        <label>Apelido / Nome de Luta</label>
+        <input type="text" id="cartel-apelido" placeholder="Ex: Maguila">
+      </div>
+      <div class="input-group">
+        <label>Data de Nascimento</label>
+        <input type="date" id="cartel-nascimento">
+      </div>
+      <div class="input-group">
+        <label>Categoria de Peso</label>
+        <input type="text" id="cartel-categoria" placeholder="Ex: Meio-médio (69kg)">
+      </div>
+      <div class="input-group">
+        <label>Cidade / Academia de Origem</label>
+        <input type="text" id="cartel-cidade-academia" placeholder="Ex: Rio Claro - SP / Academia X">
+      </div>
+      <div class="input-group">
+        <label>Estilo de Luta</label>
+        <select id="cartel-estilo">
+          <option value="ortodoxo">Ortodoxo</option>
+          <option value="canhoto">Canhoto (Southpaw)</option>
+        </select>
+      </div>
+      <div class="input-group">
+        <label>Tempo de Experiência no Boxe</label>
+        <input type="text" id="cartel-experiencia" placeholder="Ex: 5 anos">
+      </div>
+
+      <div style="font-size:0.7rem;letter-spacing:0.1em;color:var(--dourado);text-transform:uppercase;margin:1rem 0 0.5rem;">Cartel Profissional</div>
+      <div style="display:flex;gap:0.6rem;">
+        <div class="input-group" style="flex:1;">
+          <label>Vitórias</label>
+          <input type="number" id="cartel-pro-v" min="0" placeholder="0">
+        </div>
+        <div class="input-group" style="flex:1;">
+          <label>Derrotas</label>
+          <input type="number" id="cartel-pro-d" min="0" placeholder="0">
+        </div>
+        <div class="input-group" style="flex:1;">
+          <label>Empates</label>
+          <input type="number" id="cartel-pro-e" min="0" placeholder="0">
+        </div>
+      </div>
+
+      <div style="font-size:0.7rem;letter-spacing:0.1em;color:var(--dourado);text-transform:uppercase;margin:1rem 0 0.5rem;">Cartel Amador</div>
+      <div style="display:flex;gap:0.6rem;">
+        <div class="input-group" style="flex:1;">
+          <label>Vitórias</label>
+          <input type="number" id="cartel-am-v" min="0" placeholder="0">
+        </div>
+        <div class="input-group" style="flex:1;">
+          <label>Derrotas</label>
+          <input type="number" id="cartel-am-d" min="0" placeholder="0">
+        </div>
+        <div class="input-group" style="flex:1;">
+          <label>Empates</label>
+          <input type="number" id="cartel-am-e" min="0" placeholder="0">
+        </div>
+      </div>
+
+      <button class="btn-primary" onclick="salvarCartel()" style="margin-top:1rem;">SALVAR MEU CARTEL</button>
+    </div>
+
+    <!-- CARTEL — visão do treinador (somente leitura) -->
+    <div id="perfil-cartel-treinador" class="card hidden" style="border-color:var(--dourado);">
+      <div class="card-title">🥊 Cartel do <span class="accent">Atleta</span></div>
+      <div id="perfil-cartel-treinador-conteudo"></div>
+    </div>
+
+    <!-- EVOLUÇÃO FÍSICA — automática, visível pros dois -->
+    <div id="perfil-evolucao-card" class="card hidden">
+      <div class="card-title">📈 Sua <span class="accent">Evolução</span></div>
+      <div id="perfil-evolucao-conteudo"></div>
+    </div>
+
+    <!-- FEEDBACK DO TREINADOR — escrito pelo treinador -->
+    <div id="perfil-feedback-form" class="card hidden">
+      <div class="card-title">💬 Feedback para o <span class="accent">Atleta</span></div>
+      <div style="font-size:0.78rem;color:var(--cinza);margin-bottom:1rem;">Um recado seu pra ele — sobre evolução, o que melhorar, ou só uma palavra de incentivo. Ele vai ver isso no perfil dele.</div>
+      <textarea id="feedback-treinador-texto" rows="5" placeholder="Ex: Maguila, seu VO2 subiu bem nessas 3 semanas, mas o tempo de reação ainda precisa de atenção. Bora focar nisso essa semana..."></textarea>
+      <button class="btn-primary" onclick="salvarFeedbackTreinador()" style="margin-top:0.75rem;">SALVAR FEEDBACK</button>
+      <div id="feedback-historico-treinador" style="margin-top:1rem;"></div>
+    </div>
+
+    <!-- FEEDBACK RECEBIDO — visível pro atleta -->
+    <div id="perfil-feedback-atleta" class="card hidden" style="border-color:var(--dourado);">
+      <div class="card-title">💬 Recado do <span class="accent">Treinador</span></div>
+      <div id="feedback-atleta-conteudo"></div>
+    </div>
+
     <!-- QUESTIONÁRIO — preenchido pelo atleta (autoavaliação) -->
     <div class="card">
       <div class="card-title">🥊 Como Você <span class="accent">Se Vê</span></div>
@@ -4143,6 +4242,65 @@ function renderPerfilComportamental() {
 
   document.getElementById('perfil-minha-conta').classList.toggle('hidden', !souAtleta);
 
+  // ===== CARTEL =====
+  document.getElementById('perfil-cartel-form').classList.toggle('hidden', !souAtleta);
+  document.getElementById('perfil-cartel-treinador').classList.toggle('hidden', souAtleta);
+
+  if (!a.cartel) a.cartel = {};
+  const c = a.cartel;
+
+  if (souAtleta) {
+    document.getElementById('cartel-nome-completo').value = c.nomeCompleto || a.nome || '';
+    document.getElementById('cartel-apelido').value = c.apelido || a.apelido || '';
+    document.getElementById('cartel-nascimento').value = c.nascimento || '';
+    document.getElementById('cartel-categoria').value = c.categoria || '';
+    document.getElementById('cartel-cidade-academia').value = c.cidadeAcademia || '';
+    document.getElementById('cartel-estilo').value = c.estilo || 'ortodoxo';
+    document.getElementById('cartel-experiencia').value = c.experiencia || '';
+    document.getElementById('cartel-pro-v').value = c.proV ?? '';
+    document.getElementById('cartel-pro-d').value = c.proD ?? '';
+    document.getElementById('cartel-pro-e').value = c.proE ?? '';
+    document.getElementById('cartel-am-v').value = c.amV ?? '';
+    document.getElementById('cartel-am-d').value = c.amD ?? '';
+    document.getElementById('cartel-am-e').value = c.amE ?? '';
+  } else {
+    const temCartel = c.nomeCompleto || c.nascimento || c.categoria;
+    if (temCartel) {
+      const idade = c.nascimento ? calcularIdade(c.nascimento) : null;
+      document.getElementById('perfil-cartel-treinador-conteudo').innerHTML = `
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.6rem;font-size:0.85rem;margin-bottom:1rem;">
+          <div><span style="color:var(--cinza);">Nome:</span> ${c.nomeCompleto || '—'}</div>
+          <div><span style="color:var(--cinza);">Apelido:</span> ${c.apelido || '—'}</div>
+          <div><span style="color:var(--cinza);">Nascimento:</span> ${c.nascimento ? formatarData(c.nascimento) : '—'}${idade ? ` (${idade} anos)` : ''}</div>
+          <div><span style="color:var(--cinza);">Categoria:</span> ${c.categoria || '—'}</div>
+          <div style="grid-column:1/-1;"><span style="color:var(--cinza);">Cidade/Academia:</span> ${c.cidadeAcademia || '—'}</div>
+          <div><span style="color:var(--cinza);">Estilo:</span> ${c.estilo === 'canhoto' ? 'Canhoto (Southpaw)' : 'Ortodoxo'}</div>
+          <div><span style="color:var(--cinza);">Experiência:</span> ${c.experiencia || '—'}</div>
+        </div>
+        <div style="display:flex;gap:1rem;">
+          <div style="flex:1;background:var(--grafite);border-radius:6px;padding:0.75rem;text-align:center;">
+            <div style="font-size:0.65rem;letter-spacing:0.1em;color:var(--dourado);text-transform:uppercase;margin-bottom:0.3rem;">Profissional</div>
+            <div style="font-family:'Bebas Neue',sans-serif;font-size:1.3rem;">${c.proV ?? 0}V - ${c.proD ?? 0}D - ${c.proE ?? 0}E</div>
+          </div>
+          <div style="flex:1;background:var(--grafite);border-radius:6px;padding:0.75rem;text-align:center;">
+            <div style="font-size:0.65rem;letter-spacing:0.1em;color:var(--dourado);text-transform:uppercase;margin-bottom:0.3rem;">Amador</div>
+            <div style="font-family:'Bebas Neue',sans-serif;font-size:1.3rem;">${c.amV ?? 0}V - ${c.amD ?? 0}D - ${c.amE ?? 0}E</div>
+          </div>
+        </div>
+      `;
+    } else {
+      document.getElementById('perfil-cartel-treinador-conteudo').innerHTML = '<div style="font-size:0.85rem;color:var(--cinza);">O atleta ainda não preencheu o cartel.</div>';
+    }
+  }
+
+  // ===== EVOLUÇÃO FÍSICA AUTOMÁTICA =====
+  renderEvolucaoFisica(a);
+
+  // ===== FEEDBACK DO TREINADOR =====
+  document.getElementById('perfil-feedback-form').classList.toggle('hidden', souAtleta);
+  document.getElementById('perfil-feedback-atleta').classList.toggle('hidden', !souAtleta);
+  renderFeedbackTreinador(a, souAtleta);
+
   if (!a.perfilComportamental) a.perfilComportamental = {};
   const pc = a.perfilComportamental;
 
@@ -4179,6 +4337,107 @@ function renderPerfilComportamental() {
   const temAtleta = pc.atleta && Object.keys(pc.atleta).length === PERFIL_PERGUNTAS.length;
   const temTreinador = pc.treinador && Object.keys(pc.treinador).length === PERFIL_PERGUNTAS.length;
   document.getElementById('btn-gerar-perfil').classList.toggle('hidden', souAtleta || !temAtleta || !temTreinador);
+}
+
+// ===== EVOLUÇÃO FÍSICA AUTOMÁTICA (sem interpretação de IA — só os números) =====
+function renderEvolucaoFisica(a) {
+  const card = document.getElementById('perfil-evolucao-card');
+  const el = document.getElementById('perfil-evolucao-conteudo');
+
+  if (!a.avaliacoes || a.avaliacoes.length < 2) {
+    card.classList.add('hidden');
+    return;
+  }
+
+  // Para cada teste, pegar primeiro e último resultado registrado (ordenado por data)
+  const avaliacoesOrdenadas = [...a.avaliacoes].sort((x,y) => x.data.localeCompare(y.data));
+  const linhas = [];
+
+  Object.keys(TESTES_CONFIG).forEach(testeId => {
+    const t = TESTES_CONFIG[testeId];
+    const campo = t.campoClass;
+    const registros = avaliacoesOrdenadas
+      .filter(av => av.resultados?.[testeId]?.[campo])
+      .map(av => ({ data: av.data, valor: parseFloat(av.resultados[testeId][campo]) }));
+
+    if (registros.length < 2) return;
+
+    const primeiro = registros[0];
+    const ultimo = registros[registros.length - 1];
+    if (primeiro.valor === ultimo.valor) return;
+
+    const melhorou = ultimo.valor > primeiro.valor;
+    const diff = (ultimo.valor - primeiro.valor).toFixed(1);
+    const campoConfig = t.campos.find(c => c.id === campo);
+    const unidade = campoConfig?.unit || '';
+
+    linhas.push({ nome: t.nome.replace(/^\S+\s/, ''), primeiro: primeiro.valor, ultimo: ultimo.valor, unidade, melhorou, diff });
+  });
+
+  if (linhas.length === 0) {
+    card.classList.add('hidden');
+    return;
+  }
+
+  card.classList.remove('hidden');
+  el.innerHTML = linhas.map(l => `
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:0.6rem 0;border-bottom:1px solid var(--borda);">
+      <div style="font-size:0.85rem;">${l.nome}</div>
+      <div style="display:flex;align-items:center;gap:0.5rem;">
+        <span style="font-size:0.8rem;color:var(--cinza);">${l.primeiro}${l.unidade} → ${l.ultimo}${l.unidade}</span>
+        <span style="font-size:0.78rem;font-weight:600;color:${l.melhorou ? 'var(--verde)' : 'var(--vermelho)'};">
+          ${l.melhorou ? '▲' : '▼'} ${l.melhorou ? '+' : ''}${l.diff}
+        </span>
+      </div>
+    </div>
+  `).join('');
+}
+
+// ===== FEEDBACK DO TREINADOR =====
+function renderFeedbackTreinador(a, souAtleta) {
+  if (!a.feedbacks) a.feedbacks = [];
+
+  if (souAtleta) {
+    const el = document.getElementById('feedback-atleta-conteudo');
+    if (a.feedbacks.length === 0) {
+      el.innerHTML = '<div style="font-size:0.85rem;color:var(--cinza);">Seu treinador ainda não deixou nenhum recado.</div>';
+    } else {
+      el.innerHTML = [...a.feedbacks].reverse().map(f => `
+        <div style="margin-bottom:0.85rem;padding-bottom:0.85rem;border-bottom:1px solid var(--borda);">
+          <div style="font-size:0.68rem;color:var(--cinza);margin-bottom:0.3rem;">${formatarData(f.data)}</div>
+          <div style="font-size:0.88rem;line-height:1.6;">${f.texto}</div>
+        </div>
+      `).join('');
+    }
+  } else {
+    const hist = document.getElementById('feedback-historico-treinador');
+    if (a.feedbacks.length === 0) {
+      hist.innerHTML = '';
+    } else {
+      hist.innerHTML = `<div style="font-size:0.7rem;letter-spacing:0.1em;color:var(--cinza);text-transform:uppercase;margin-bottom:0.5rem;">Histórico</div>` +
+        [...a.feedbacks].reverse().map(f => `
+          <div style="margin-bottom:0.6rem;padding-bottom:0.6rem;border-bottom:1px solid var(--borda);">
+            <div style="font-size:0.68rem;color:var(--cinza);margin-bottom:0.2rem;">${formatarData(f.data)}</div>
+            <div style="font-size:0.82rem;color:var(--cinza);">${f.texto}</div>
+          </div>
+        `).join('');
+    }
+  }
+}
+
+async function salvarFeedbackTreinador() {
+  const a = state.atletaAtual;
+  if (!a) return;
+  const texto = document.getElementById('feedback-treinador-texto').value.trim();
+  if (!texto) { showToast('Escreva o feedback antes de salvar', 'erro'); return; }
+
+  if (!a.feedbacks) a.feedbacks = [];
+  a.feedbacks.push({ data: new Date().toISOString().split('T')[0], texto });
+  await salvarEstado();
+
+  document.getElementById('feedback-treinador-texto').value = '';
+  showToast('Feedback enviado!');
+  renderFeedbackTreinador(a, false);
 }
 
 function salvarPerfilAtleta() {
@@ -4413,9 +4672,23 @@ function gerarRelatorioProfissional() {
   const doc = new jsPDF();
   let y = _pdfHeader(doc, 'RELATÓRIO DE PREPARAÇÃO — USO PROFISSIONAL');
 
-  y = _pdfLine(doc, `Atleta: ${a.nome}`, y, { bold:true, size:14, gap:8 });
+  const c = a.cartel || {};
+  y = _pdfLine(doc, `Atleta: ${c.nomeCompleto || a.nome}${c.apelido ? ' "'+c.apelido+'"' : ''}`, y, { bold:true, size:14, gap:8 });
   y = _pdfLine(doc, `Treinador: Fábio · CREF 142588-G/SP`, y, { size:10, gap:6 });
   y = _pdfLine(doc, `Luta: ${formatarData(a.dataLuta)} · ${a.formato||'—'}`, y, { size:10, gap:9 });
+
+  // Cartel — identificação e histórico esportivo
+  if (c.nascimento || c.categoria || c.proV != null) {
+    const idade = c.nascimento ? calcularIdade(c.nascimento) : null;
+    y = _pdfLine(doc, 'CARTEL', y, { bold:true, size:12, color:[200,16,46], gap:8 });
+    if (c.nascimento) y = _pdfLine(doc, `Idade: ${idade} anos (${formatarData(c.nascimento)})`, y);
+    if (c.categoria) y = _pdfLine(doc, `Categoria: ${c.categoria}`, y);
+    if (c.cidadeAcademia) y = _pdfLine(doc, `Origem: ${c.cidadeAcademia}`, y);
+    if (c.estilo) y = _pdfLine(doc, `Estilo: ${c.estilo === 'canhoto' ? 'Canhoto (Southpaw)' : 'Ortodoxo'}`, y);
+    if (c.experiencia) y = _pdfLine(doc, `Experiência no boxe: ${c.experiencia}`, y);
+    y = _pdfLine(doc, `Cartel Profissional: ${c.proV ?? 0}V - ${c.proD ?? 0}D - ${c.proE ?? 0}E`, y, { bold:true });
+    y = _pdfLine(doc, `Cartel Amador: ${c.amV ?? 0}V - ${c.amD ?? 0}D - ${c.amE ?? 0}E`, y, { bold:true, gap:9 });
+  }
 
   // Narrativa do atleta — sonho, motivação e significado da luta
   const prop = a.proposito || {};
@@ -4643,6 +4916,39 @@ function formatarData(iso) {
   if (!iso) return '—';
   const [y, m, d] = iso.split('-');
   return `${d}/${m}/${y}`;
+}
+
+function calcularIdade(iso) {
+  if (!iso) return null;
+  const nasc = new Date(iso + 'T12:00:00');
+  const hoje = new Date();
+  let idade = hoje.getFullYear() - nasc.getFullYear();
+  const m = hoje.getMonth() - nasc.getMonth();
+  if (m < 0 || (m === 0 && hoje.getDate() < nasc.getDate())) idade--;
+  return idade;
+}
+
+async function salvarCartel() {
+  const a = state.atletaAtual;
+  if (!a) return;
+  if (!a.cartel) a.cartel = {};
+
+  a.cartel.nomeCompleto = document.getElementById('cartel-nome-completo').value.trim();
+  a.cartel.apelido = document.getElementById('cartel-apelido').value.trim();
+  a.cartel.nascimento = document.getElementById('cartel-nascimento').value;
+  a.cartel.categoria = document.getElementById('cartel-categoria').value.trim();
+  a.cartel.cidadeAcademia = document.getElementById('cartel-cidade-academia').value.trim();
+  a.cartel.estilo = document.getElementById('cartel-estilo').value;
+  a.cartel.experiencia = document.getElementById('cartel-experiencia').value.trim();
+  a.cartel.proV = parseInt(document.getElementById('cartel-pro-v').value) || 0;
+  a.cartel.proD = parseInt(document.getElementById('cartel-pro-d').value) || 0;
+  a.cartel.proE = parseInt(document.getElementById('cartel-pro-e').value) || 0;
+  a.cartel.amV = parseInt(document.getElementById('cartel-am-v').value) || 0;
+  a.cartel.amD = parseInt(document.getElementById('cartel-am-d').value) || 0;
+  a.cartel.amE = parseInt(document.getElementById('cartel-am-e').value) || 0;
+
+  await salvarEstado();
+  showToast('Cartel salvo com sucesso!');
 }
 
 // Enter no login
