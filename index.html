@@ -1769,7 +1769,9 @@
     </div>
 
     <button id="btn-ia-sessao" class="btn-gold" onclick="gerarSessaoComIA()" style="width:100%;margin-bottom:0.5rem;">⚡ GERAR SESSÃO COM IA</button>
-    <button id="btn-ia-corrigir" class="btn-secondary" onclick="corrigirSessaoComIA(_editSemIdx, _editDiaIdx)" style="width:100%;margin-bottom:1.25rem;border-color:var(--vermelho);color:var(--vermelho);">🔍 ANALISAR E CORRIGIR COM IA</button>
+    <button id="btn-ia-corrigir" class="btn-secondary" onclick="corrigirSessaoComIA(_editSemIdx, _editDiaIdx)" style="width:100%;margin-bottom:0.5rem;border-color:var(--vermelho);color:var(--vermelho);">🔍 ANALISAR E CORRIGIR COM IA</button>
+    <button id="btn-ia-analisar-sessao" class="btn-secondary" onclick="analisarSessaoEditada()" style="width:100%;margin-bottom:1.25rem;border-color:var(--dourado);color:var(--dourado);">🎯 ANALISAR ESTA SESSÃO</button>
+    <div id="analise-sessao-resultado" class="hidden" style="background:var(--grafite);border:1px solid var(--dourado);border-radius:6px;padding:0.75rem;margin-bottom:1rem;font-size:0.82rem;line-height:1.6;"></div>
 
     <div class="input-group">
       <label>Foco / Título da Sessão</label>
@@ -3642,6 +3644,39 @@ function abrirEdicaoSessao(semIdx, diaIdx) {
   document.getElementById('modal-editar-sessao').classList.remove('hidden');
 }
 
+function gerarChecklistDaSessao(s) {
+  const checklist = [];
+  const principal = (s.principal || '').toLowerCase();
+  const foco = (s.foco || '').toLowerCase();
+
+  // Aquecimento sempre primeiro
+  if (s.aquecimento) checklist.push('🔥 ' + s.aquecimento.split('.')[0]);
+
+  // Detectar tipo pelo conteúdo do principal
+  if (principal.includes('sombra') || principal.includes('shadow')) {
+    const rounds = principal.match(/(\d+)\s*rounds?/);
+    checklist.push('👊 Sombra' + (rounds ? ': ' + rounds[1] + ' rounds' : ''));
+  }
+  if (principal.includes('manopla')) checklist.push('🥊 Manoplas');
+  if (principal.includes('saco')) checklist.push('🎯 Saco');
+  if (principal.includes('sparring')) checklist.push('🥊 Sparring');
+  if (principal.includes('escola') || principal.includes('corredor')) checklist.push('🤼 Escola de Combate');
+  if (principal.includes('vestibular') || principal.includes('giro')) checklist.push('🌀 Protocolo Vestibular');
+  if (principal.includes('escada') || principal.includes('ladder')) checklist.push('⚡ Escada de Agilidade');
+  if (principal.includes('cone')) checklist.push('🔺 Cones — deslocamento lateral');
+  if (principal.includes('footwork') || foco.includes('perna') || foco.includes('agilidade')) checklist.push('👊 Sombra com footwork');
+
+  // Fortalecimento
+  if (s.forcamento) checklist.push('💪 ' + s.forcamento.split(':')[0]);
+
+  // Se não detectou nada relevante, gerar itens genéricos do foco
+  if (checklist.length <= 1 && s.foco) {
+    checklist.push('🥊 ' + s.foco);
+  }
+
+  return checklist;
+}
+
 function salvarEdicaoSessao() {
   const a = state.atletaAtual;
   const s = a.periodizacao.semanas[_editSemIdx].sessoes[_editDiaIdx];
@@ -3653,6 +3688,10 @@ function salvarEdicaoSessao() {
   s.forcamento = document.getElementById('edit-forcamento').value.trim();
   s.obs = document.getElementById('edit-obs').value.trim();
   s.resumo = s.principal.split('\n')[0];
+
+  // Regenerar checklist automaticamente com base no novo conteúdo
+  s.checklist = gerarChecklistDaSessao(s);
+  s.feitos = []; // resetar itens marcados pois o conteúdo mudou
 
   salvarEstado();
   fecharModal('modal-editar-sessao');
@@ -4236,6 +4275,66 @@ function apagarTesteHistorico(avIdx, testeKey) {
 function salvarAvaliacao() {} // mantida por compatibilidade
 
 // ======= AUTO-CORREÇÃO DA IA =======
+async function analisarSessaoEditada() {
+  const a = state.atletaAtual;
+  if (!a) return;
+
+  const foco = document.getElementById('edit-foco').value.trim();
+  const aquecimento = document.getElementById('edit-aquecimento').value.trim();
+  const principal = document.getElementById('edit-principal').value.trim();
+  const sparring = document.getElementById('edit-sparring').value.trim();
+  const forcamento = document.getElementById('edit-forcamento').value.trim();
+
+  if (!principal) { showToast('Preencha a parte principal antes de analisar', 'erro'); return; }
+
+  const btn = document.getElementById('btn-ia-analisar-sessao');
+  const resultEl = document.getElementById('analise-sessao-resultado');
+  btn.textContent = '⏳ Analisando...';
+  btn.disabled = true;
+  resultEl.classList.add('hidden');
+
+  const sem = a.periodizacao?.semanas?.[_editSemIdx];
+  const totalSemanas = a.periodizacao?.semanas?.length || 6;
+  const pct = Math.round((_editSemIdx / totalSemanas) * 100);
+
+  const system = `Você é preparador físico especialista em boxe. Analise de forma direta e prática a sessão de treino descrita. 
+Dê um parecer em 3-5 linhas: o que está bom, o que está excessivo, o que falta, e se está adequado à fase da periodização.
+Use linguagem direta, sem rodeios. Responda em português brasileiro.
+REGRAS: Flexões/burpees só em sessões de força. Sombra sempre no início. Vestibular em sessões específicas. Sessões técnicas com volume menor (atleta já treinou de manhã).`;
+
+  const user = `Sessão editada — ${foco}
+Semana ${(_editSemIdx||0)+1}/${totalSemanas} (${pct}% da prep) — ${sem?.mesociclo || ''}
+
+Aquecimento: ${aquecimento || '—'}
+Principal: ${principal}
+Sparring: ${sparring || 'Nenhum'}
+Fortalecimento: ${forcamento || '—'}
+
+Análise direta: o que está certo e o que precisa ajustar nessa sessão?`;
+
+  try {
+    const resp = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-6',
+        max_tokens: 500,
+        system,
+        messages: [{ role: 'user', content: user }]
+      })
+    });
+    const data = await resp.json();
+    const texto = data.content?.map(b => b.text || '').join('') || '';
+    resultEl.textContent = texto;
+    resultEl.classList.remove('hidden');
+  } catch(e) {
+    showToast('Erro ao analisar sessão', 'erro');
+  } finally {
+    btn.textContent = '🎯 ANALISAR ESTA SESSÃO';
+    btn.disabled = false;
+  }
+}
+
 async function corrigirSessaoComIA(semIdx, diaIdx) {
   const a = state.atletaAtual;
   if (!a || !a.periodizacao) return;
