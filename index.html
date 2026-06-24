@@ -2005,15 +2005,20 @@
     </div>
 
     <!-- Input -->
-    <div style="padding:0.75rem 1rem;border-top:1px solid var(--borda);display:flex;gap:0.5rem;">
+    <div style="padding:0.75rem 1rem;border-top:1px solid var(--borda);display:flex;gap:0.5rem;align-items:flex-end;">
+      <button id="chat-ia-mic" onclick="toggleVozChat()"
+        title="Falar por voz"
+        style="background:var(--grafite);border:1px solid var(--borda);color:var(--cinza);
+          border-radius:6px;padding:0.6rem 0.75rem;cursor:pointer;font-size:1.1rem;
+          flex-shrink:0;transition:all 0.2s;">🎙️</button>
       <textarea id="chat-ia-input" rows="2"
-        placeholder="Ex: Cria uma sessão de vestibular para quarta-feira semana 3..."
+        placeholder="Digite ou use o microfone..."
         style="flex:1;resize:none;background:var(--grafite);border:1px solid var(--borda);
           border-radius:6px;padding:0.6rem;color:var(--branco);font-family:'Inter',sans-serif;
           font-size:0.88rem;outline:none;"></textarea>
       <button id="chat-ia-enviar" onclick="enviarMensagemIA()"
         style="background:var(--vermelho);border:none;color:white;border-radius:6px;
-          padding:0.6rem 1rem;cursor:pointer;font-size:1.1rem;align-self:flex-end;">➤</button>
+          padding:0.6rem 1rem;cursor:pointer;font-size:1.1rem;flex-shrink:0;">➤</button>
     </div>
   </div>
 </div>
@@ -4713,6 +4718,77 @@ Recomende QUANDO aplicar cada teste durante as ${numSemanas} semanas. Justifique
   } catch(e) {
     showToast('Erro ao gerar protocolo', 'erro');
   }
+}
+
+// ======= VOZ NO CHAT IA =======
+let _reconhecimentoVoz = null;
+let _vozAtiva = false;
+
+function toggleVozChat() {
+  if (!verificarAmbienteIA()) return;
+
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SpeechRecognition) {
+    showToast('Reconhecimento de voz não suportado neste navegador. Use Chrome.', 'erro');
+    return;
+  }
+
+  if (_vozAtiva) {
+    _reconhecimentoVoz?.stop();
+    return;
+  }
+
+  _reconhecimentoVoz = new SpeechRecognition();
+  _reconhecimentoVoz.lang = 'pt-BR';
+  _reconhecimentoVoz.continuous = false;
+  _reconhecimentoVoz.interimResults = true;
+
+  const btn = document.getElementById('chat-ia-mic');
+  const input = document.getElementById('chat-ia-input');
+
+  _reconhecimentoVoz.onstart = () => {
+    _vozAtiva = true;
+    btn.textContent = '🔴';
+    btn.style.borderColor = 'var(--vermelho)';
+    btn.style.color = 'var(--vermelho)';
+    btn.title = 'Gravando... toque para parar';
+    input.placeholder = 'Ouvindo...';
+  };
+
+  _reconhecimentoVoz.onresult = (e) => {
+    const transcript = Array.from(e.results)
+      .map(r => r[0].transcript)
+      .join('');
+    input.value = transcript;
+  };
+
+  _reconhecimentoVoz.onend = () => {
+    _vozAtiva = false;
+    btn.textContent = '🎙️';
+    btn.style.borderColor = 'var(--borda)';
+    btn.style.color = 'var(--cinza)';
+    btn.title = 'Falar por voz';
+    input.placeholder = 'Digite ou use o microfone...';
+
+    // Se capturou texto, enviar automaticamente
+    if (input.value.trim()) {
+      enviarMensagemIA();
+    }
+  };
+
+  _reconhecimentoVoz.onerror = (e) => {
+    _vozAtiva = false;
+    btn.textContent = '🎙️';
+    btn.style.borderColor = 'var(--borda)';
+    btn.style.color = 'var(--cinza)';
+    if (e.error === 'not-allowed') {
+      showToast('Permita o acesso ao microfone nas configurações do navegador.', 'erro');
+    } else {
+      showToast('Erro no microfone. Tente novamente.', 'erro');
+    }
+  };
+
+  _reconhecimentoVoz.start();
 }
 
 // ======= CHAT IA FLUTUANTE =======
