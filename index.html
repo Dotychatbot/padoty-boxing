@@ -908,7 +908,39 @@
   ::-webkit-scrollbar-track { background: var(--preto); }
   ::-webkit-scrollbar-thumb { background: var(--borda); border-radius: 2px; }
 
-  /* ======= RESPONSIVIDADE ======= */
+  /* ======= CHAT IA FLUTUANTE ======= */
+  .chat-msg-usuario {
+    align-self: flex-end;
+    background: var(--vermelho);
+    color: white;
+    padding: 0.6rem 0.9rem;
+    border-radius: 12px 12px 2px 12px;
+    max-width: 80%;
+    font-size: 0.85rem;
+    line-height: 1.5;
+  }
+  .chat-msg-ia {
+    align-self: flex-start;
+    background: var(--grafite);
+    border: 1px solid var(--borda);
+    color: var(--branco);
+    padding: 0.6rem 0.9rem;
+    border-radius: 12px 12px 12px 2px;
+    max-width: 85%;
+    font-size: 0.85rem;
+    line-height: 1.5;
+    white-space: pre-wrap;
+  }
+  .chat-msg-digitando {
+    align-self: flex-start;
+    color: var(--cinza);
+    font-size: 0.8rem;
+    font-style: italic;
+    padding: 0.3rem 0;
+  }
+  #ia-fab:hover { transform: scale(1.08); }
+
+</style>
 
   /* MOBILE PEQUENO (até 480px) — iPhone SE, Android compacto */
   @media (max-width: 480px) {
@@ -1925,6 +1957,69 @@
 
 <div class="toast" id="toast"></div>
 
+<!-- BOTÃO FLUTUANTE DA IA -->
+<div id="ia-fab" class="hidden" onclick="abrirChatIA()"
+  style="position:fixed;bottom:1.5rem;right:1.5rem;z-index:400;
+    width:56px;height:56px;border-radius:50%;
+    background:linear-gradient(135deg,var(--vermelho),#8b0000);
+    border:2px solid var(--dourado);
+    display:flex;align-items:center;justify-content:center;
+    cursor:pointer;box-shadow:0 4px 20px rgba(200,16,46,0.4);
+    font-size:1.4rem;transition:transform 0.2s;">
+  🤖
+</div>
+
+<!-- MODAL CHAT IA -->
+<div class="modal-overlay hidden" id="modal-chat-ia" style="z-index:500;align-items:flex-end;padding:0;">
+  <div style="width:100%;max-width:600px;margin:0 auto;
+    background:var(--card);border-top:2px solid var(--vermelho);
+    border-radius:12px 12px 0 0;padding:0;
+    max-height:85vh;display:flex;flex-direction:column;">
+
+    <!-- Header do chat -->
+    <div style="display:flex;align-items:center;justify-content:space-between;
+      padding:1rem 1.25rem;border-bottom:1px solid var(--borda);">
+      <div>
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:1.1rem;letter-spacing:0.1em;">
+          🤖 Assistente <span style="color:var(--vermelho);">PADOTY</span>
+        </div>
+        <div style="font-size:0.7rem;color:var(--cinza);">Pode pedir sessões, ajustes no cronograma ou tirar dúvidas</div>
+      </div>
+      <button onclick="fecharChatIA()" style="background:none;border:none;color:var(--cinza);font-size:1.3rem;cursor:pointer;">✕</button>
+    </div>
+
+    <!-- Mensagens -->
+    <div id="chat-ia-msgs" style="flex:1;overflow-y:auto;padding:1rem;display:flex;flex-direction:column;gap:0.75rem;min-height:200px;max-height:50vh;">
+      <div class="chat-msg-ia">
+        Olá! Sou o assistente do PADOTY BOXING. Posso te ajudar a montar ou ajustar sessões e o cronograma do Maguila. O que você precisa?
+      </div>
+    </div>
+
+    <!-- Resultado pendente de confirmação -->
+    <div id="chat-ia-confirmacao" class="hidden"
+      style="margin:0 1rem;background:var(--grafite);border:1px solid var(--dourado);border-radius:8px;padding:0.75rem;">
+      <div style="font-size:0.68rem;color:var(--dourado);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:0.4rem;">Proposta da IA — revise antes de aplicar</div>
+      <div id="chat-ia-proposta" style="font-size:0.82rem;line-height:1.6;max-height:150px;overflow-y:auto;"></div>
+      <div style="display:flex;gap:0.5rem;margin-top:0.75rem;">
+        <button class="btn-primary" style="flex:1;padding:0.6rem;" onclick="confirmarPropostaIA()">✅ APLICAR</button>
+        <button class="btn-secondary" style="flex:1;padding:0.6rem;" onclick="recusarPropostaIA()">✕ Descartar</button>
+      </div>
+    </div>
+
+    <!-- Input -->
+    <div style="padding:0.75rem 1rem;border-top:1px solid var(--borda);display:flex;gap:0.5rem;">
+      <textarea id="chat-ia-input" rows="2"
+        placeholder="Ex: Cria uma sessão de vestibular para quarta-feira semana 3..."
+        style="flex:1;resize:none;background:var(--grafite);border:1px solid var(--borda);
+          border-radius:6px;padding:0.6rem;color:var(--branco);font-family:'Inter',sans-serif;
+          font-size:0.88rem;outline:none;"></textarea>
+      <button id="chat-ia-enviar" onclick="enviarMensagemIA()"
+        style="background:var(--vermelho);border:none;color:white;border-radius:6px;
+          padding:0.6rem 1rem;cursor:pointer;font-size:1.1rem;align-self:flex-end;">➤</button>
+    </div>
+  </div>
+</div>
+
 <!-- MODAL PRIMEIRO ACESSO -->
 <div class="modal-overlay hidden" id="modal-primeiro-acesso" style="z-index:300;">
   <div class="modal" style="max-width:480px;">
@@ -2068,6 +2163,18 @@ function salvarEstadoLocal() {
   _ultimoSalvamentoLocal = JSON.stringify(payload);
 }
 
+function salvarSessaoLogin() {
+  localStorage.setItem('padoty_sessao', JSON.stringify({
+    logado: true,
+    perfil: state.perfil,
+    atletaAtualId: state.atletaAtual?.id
+  }));
+}
+
+function limparSessaoLogin() {
+  localStorage.removeItem('padoty_sessao');
+}
+
 async function salvarEstado() {
   // Sempre salva local primeiro — garante que nada se perde mesmo offline
   salvarEstadoLocal();
@@ -2141,12 +2248,29 @@ async function carregarEstado() {
       // Primeiro acesso — carrega tudo do zero
       maguila.periodizacao = novo.periodizacao;
     } else if (!mesmaTamanho) {
-      // Estrutura mudou (semanas adicionadas/removidas) — atualiza preservando edições
+      // Estrutura mudou — atualiza preservando edições
       maguila.periodizacao.mesociclos = novo.periodizacao.mesociclos;
       maguila.periodizacao.textoIA = novo.periodizacao.textoIA;
-      // Não sobrescreve as sessões existentes
+    } else {
+      // Mesma estrutura — só corrigir sessões que estão sem checklist
+      let precisaSalvar = false;
+      maguila.periodizacao.semanas.forEach((sem, si) => {
+        sem.sessoes.forEach((s, di) => {
+          if (!s.checklist || s.checklist.length === 0) {
+            // Buscar sessão equivalente na versão nova pra pegar o checklist
+            const novaSessao = novo.periodizacao.semanas[si]?.sessoes[di];
+            if (novaSessao?.checklist?.length > 0) {
+              s.checklist = novaSessao.checklist;
+            } else {
+              s.checklist = gerarChecklistDaSessao(s);
+            }
+            if (!s.feitos) s.feitos = [];
+            precisaSalvar = true;
+          }
+        });
+      });
+      if (precisaSalvar) await salvarEstado();
     }
-    // Se mesma estrutura — não toca nas sessões (preserva edições manuais)
 
     maguila.focoTecnico = novo.focoTecnico;
     maguila.inicioPrep = '2026-06-22';
@@ -2165,17 +2289,19 @@ function ativarSyncTempoReal() {
   if (_syncAtivo) return;
   _syncAtivo = true;
   DOC_PADOTY().onSnapshot(snap => {
-    if (!snap.exists || _salvandoFirebase) return;
+    // Não sobrescrever enquanto o modal de edição estiver aberto
+    const modalAberto = !document.getElementById('modal-editar-sessao').classList.contains('hidden');
+    if (!snap.exists || _salvandoFirebase || modalAberto) return;
+
     const d = snap.data();
     const payloadRecebido = JSON.stringify({ atletas: d.atletas, atletaAtualId: d.atletaAtualId });
-    if (payloadRecebido === _ultimoSalvamentoLocal) return; // evita loop com o próprio salvamento
+    if (payloadRecebido === _ultimoSalvamentoLocal) return;
 
     state.atletas = d.atletas || state.atletas;
     if (d.atletaAtualId && state.atletaAtual?.id !== d.atletaAtualId) {
       const novoAtual = state.atletas.find(a => a.id === d.atletaAtualId);
       if (novoAtual) state.atletaAtual = novoAtual;
     } else if (state.atletaAtual) {
-      // Atualiza o objeto atual com os dados novos
       const atualizado = state.atletas.find(a => a.id === state.atletaAtual.id);
       if (atualizado) state.atletaAtual = atualizado;
     }
@@ -2547,6 +2673,8 @@ async function fazerLoginTreinador() {
     document.getElementById('nav-tabs-treinador').classList.remove('hidden');
     document.getElementById('nav-tabs-atleta').classList.add('hidden');
     document.getElementById('btn-trocar-atleta').classList.remove('hidden');
+    document.getElementById('ia-fab').classList.remove('hidden');
+    salvarSessaoLogin();
     atualizarUI();
     showTab('dashboard');
   } else {
@@ -2587,6 +2715,7 @@ async function fazerLoginAtleta() {
   document.getElementById('nav-tabs-treinador').classList.add('hidden');
   document.getElementById('nav-tabs-atleta').classList.remove('hidden');
   document.getElementById('btn-trocar-atleta').classList.add('hidden');
+  salvarSessaoLogin();
   atualizarUI();
 
   // Detectar primeiro acesso — se não tiver cartel preenchido, abre o modal
@@ -2666,6 +2795,9 @@ async function pularPrimeiroAcesso() {
 function fazerLogout() {
   state.logado = false;
   state.perfil = 'treinador';
+  limparSessaoLogin();
+  document.getElementById('ia-fab').classList.add('hidden');
+  fecharChatIA();
   document.getElementById('login-screen').style.display = 'flex';
   document.getElementById('app').style.display = 'none';
 }
@@ -3167,6 +3299,12 @@ async function gerarSessaoComIA() {
   const a = state.atletaAtual;
   if (!a || _editSemIdx < 0) return;
 
+  // Verificar se está hospedado (HTTPS) — API não funciona em arquivo local
+  if (window.location.protocol === 'file:') {
+    showToast('Funcionalidade de IA requer o app hospedado no GitHub Pages', 'erro');
+    return;
+  }
+
   const s = a.periodizacao.semanas[_editSemIdx].sessoes[_editDiaIdx];
   const sem = a.periodizacao.semanas[_editSemIdx];
   const inicio = new Date(a.inicioPrep + 'T12:00:00');
@@ -3405,6 +3543,7 @@ function resumirPeriodizacaoParaIA(a) {
 }
 
 async function analisarPeriodizacaoCompleta() {
+  if (!verificarAmbienteIA()) return;
   const a = state.atletaAtual;
   if (!a || !a.periodizacao) { showToast('Gere a periodização primeiro', 'erro'); return; }
 
@@ -3450,6 +3589,7 @@ Seja direto: diga "está alto", "está baixo", "está ok", "recomendo mudar X pa
 }
 
 async function analisarSemana(semIdx) {
+  if (!verificarAmbienteIA()) return;
   const a = state.atletaAtual;
   if (!a || !a.periodizacao) return;
   const sem = a.periodizacao.semanas[semIdx];
@@ -3554,7 +3694,13 @@ function renderSessaoHoje() {
           ${souAtleta ? '' : `<button class="btn-secondary" onclick="abrirEdicaoSessao(${hojeInfo.semIdx},${hojeInfo.diaIdx})" style="font-size:0.75rem;padding:0.5rem 0.8rem;">✏️ Editar</button>`}
         </div>
         ${renderSessaoCard(hojeInfo.s, hojeInfo.semIdx, hojeInfo.diaIdx, souAtleta)}
-        <button class="btn-primary" style="margin-top:1rem;" onclick="showTab('checkin')">FAZER CHECK-IN</button>
+        ${souAtleta
+          ? `<button class="btn-primary" style="margin-top:1rem;" onclick="showTab('checkin')">FAZER CHECK-IN</button>`
+          : `<div style="display:flex;gap:0.5rem;margin-top:1rem;">
+              <button class="btn-primary" style="flex:1;" onclick="showTab('checkin')">FAZER CHECK-IN</button>
+              <button class="btn-secondary" style="flex:1;border-color:var(--verde);color:var(--verde);" onclick="confirmarPresencaTreinador('${hoje}')">✅ CONFIRMAR PRESENÇA</button>
+            </div>`
+        }
       </div>`;
   } else if (souAtleta) {
     html += `<div class="card" style="text-align:center;padding:2rem;">
@@ -3774,14 +3920,27 @@ function renderCheckin() {
   if (!a || a.checkins.length === 0) {
     hist.innerHTML = '<div style="font-size:0.8rem;color:var(--cinza);">Nenhum check-in registrado ainda.</div>';
   } else {
-    hist.innerHTML = a.checkins.slice(-10).reverse().map(c => `
-      <div class="nota-card">
-        <div class="nota-data">${formatarData(c.data)} · PSE: ${c.pse}/10 · Sono: ${'⭐'.repeat(c.sono)} · Disposição: ${'⭐'.repeat(c.disposicao)}${c.peso ? ` · ⚖️ ${c.peso}kg` : ''}</div>
-        ${c.dor ? `<div style="font-size:0.78rem;color:var(--amarelo);margin-bottom:0.2rem;">⚠️ ${c.dor}</div>` : ''}
-        ${c.obs ? `<div class="nota-texto">${c.obs}</div>` : ''}
-        ${(!souAtleta && c.obsTreinador) ? `<div style="font-size:0.78rem;color:var(--dourado);margin-top:0.3rem;border-top:1px solid var(--borda);padding-top:0.3rem;">📝 ${c.obsTreinador}</div>` : ''}
-      </div>
-    `).join('');
+    hist.innerHTML = a.checkins.slice(-10).reverse().map(c => {
+      if (c.confirmedByTrainer) {
+        // Presença confirmada pelo treinador
+        return `
+          <div class="nota-card" style="border-left:3px solid var(--verde);">
+            <div class="nota-data" style="display:flex;align-items:center;gap:0.5rem;">
+              <span style="color:var(--verde);font-size:0.8rem;">✅ Presença confirmada</span>
+              <span style="color:var(--cinza);">· ${formatarData(c.data)}</span>
+            </div>
+            ${c.obsTreinador ? `<div style="font-size:0.78rem;color:var(--dourado);margin-top:0.3rem;">📝 ${c.obsTreinador}</div>` : ''}
+          </div>`;
+      }
+      // Check-in normal do atleta
+      return `
+        <div class="nota-card">
+          <div class="nota-data">${formatarData(c.data)} · PSE: ${c.pse}/10 · Sono: ${'⭐'.repeat(c.sono||0)} · Disposição: ${'⭐'.repeat(c.disposicao||0)}${c.peso ? ` · ⚖️ ${c.peso}kg` : ''}</div>
+          ${c.dor ? `<div style="font-size:0.78rem;color:var(--amarelo);margin-bottom:0.2rem;">⚠️ ${c.dor}</div>` : ''}
+          ${c.obs ? `<div class="nota-texto">${c.obs}</div>` : ''}
+          ${(!souAtleta && c.obsTreinador) ? `<div style="font-size:0.78rem;color:var(--dourado);margin-top:0.3rem;border-top:1px solid var(--borda);padding-top:0.3rem;">📝 ${c.obsTreinador}</div>` : ''}
+        </div>`;
+    }).join('');
   }
 }
 
@@ -3871,6 +4030,68 @@ function setStar(campo, n) {
   if (campo === 'sono') state.sonoRating = n;
   else state.disposicaoRating = n;
   renderStars('stars-' + campo, campo);
+}
+
+let _confirmandoPresenca = false;
+
+async function confirmarPresencaTreinador(data) {
+  const a = state.atletaAtual;
+  if (!a) return;
+
+  // Verificar se já tem check-in nesse dia
+  const jaTemCheckin = a.checkins?.some(c => c.data === data);
+  if (jaTemCheckin) {
+    showToast('Já existe um check-in registrado nessa data.', 'erro');
+    return;
+  }
+
+  // Duplo toque para confirmar
+  const btn = event?.target;
+  if (!_confirmandoPresenca) {
+    _confirmandoPresenca = true;
+    if (btn) {
+      const orig = btn.textContent;
+      btn.textContent = '⚠️ CONFIRMAR?';
+      btn.style.background = 'var(--verde)';
+      btn.style.color = 'white';
+      btn.style.borderColor = 'var(--verde)';
+      setTimeout(() => {
+        _confirmandoPresenca = false;
+        btn.textContent = orig;
+        btn.style.background = '';
+        btn.style.color = 'var(--verde)';
+        btn.style.borderColor = 'var(--verde)';
+      }, 3000);
+    }
+    return;
+  }
+
+  _confirmandoPresenca = false;
+
+  // Abrir modal pra anotação opcional
+  const obs = prompt('Observação do treinador (opcional):\nEx: Sessão completa. Jab melhorou.') ?? '';
+
+  const checkin = {
+    data,
+    tipo: 'treinador',
+    pse: null,
+    sono: null,
+    disposicao: null,
+    peso: null,
+    dor: '',
+    obs: '',
+    obsTreinador: obs.trim(),
+    rounds: 10,
+    confirmedByTrainer: true,
+  };
+
+  if (!a.checkins) a.checkins = [];
+  a.checkins.push(checkin);
+  await salvarEstado();
+
+  showToast(`✅ Presença de ${a.apelido || a.nome} confirmada!`);
+  renderSessaoHoje();
+  renderCheckin();
 }
 
 function salvarCheckin() {
@@ -4315,6 +4536,7 @@ function salvarAvaliacao() {} // mantida por compatibilidade
 
 // ======= AUTO-CORREÇÃO DA IA =======
 async function analisarSessaoEditada() {
+  if (!verificarAmbienteIA()) return;
   const a = state.atletaAtual;
   if (!a) return;
 
@@ -4375,6 +4597,7 @@ Análise direta: o que está certo e o que precisa ajustar nessa sessão?`;
 }
 
 async function corrigirSessaoComIA(semIdx, diaIdx) {
+  if (!verificarAmbienteIA()) return;
   const a = state.atletaAtual;
   if (!a || !a.periodizacao) return;
   const s = a.periodizacao.semanas[semIdx].sessoes[diaIdx];
@@ -4494,6 +4717,179 @@ Recomende QUANDO aplicar cada teste durante as ${numSemanas} semanas. Justifique
   }
 }
 
+// ======= CHAT IA FLUTUANTE =======
+let _chatHistorico = []; // histórico de mensagens do chat
+let _propostaPendente = null; // proposta da IA aguardando confirmação
+
+function abrirChatIA() {
+  if (!verificarAmbienteIA()) return;
+  document.getElementById('modal-chat-ia').classList.remove('hidden');
+  document.getElementById('chat-ia-input').focus();
+}
+
+function fecharChatIA() {
+  document.getElementById('modal-chat-ia').classList.add('hidden');
+}
+
+function adicionarMsgChat(texto, tipo) {
+  const container = document.getElementById('chat-ia-msgs');
+  const div = document.createElement('div');
+  div.className = tipo === 'usuario' ? 'chat-msg-usuario' : tipo === 'digitando' ? 'chat-msg-digitando' : 'chat-msg-ia';
+  div.textContent = texto;
+  div.id = tipo === 'digitando' ? 'chat-digitando' : '';
+  container.appendChild(div);
+  container.scrollTop = container.scrollHeight;
+  return div;
+}
+
+function removerDigitando() {
+  document.getElementById('chat-digitando')?.remove();
+}
+
+async function enviarMensagemIA() {
+  if (!verificarAmbienteIA()) return;
+  const input = document.getElementById('chat-ia-input');
+  const texto = input.value.trim();
+  if (!texto) return;
+
+  const btn = document.getElementById('chat-ia-enviar');
+  input.value = '';
+  btn.disabled = true;
+
+  adicionarMsgChat(texto, 'usuario');
+  _chatHistorico.push({ role: 'user', content: texto });
+  adicionarMsgChat('Pensando...', 'digitando');
+
+  const a = state.atletaAtual;
+
+  // Contexto do atleta e periodização atual
+  const contexto = a ? `
+ATLETA: ${a.nome} | Luta: ${a.dataLuta} | Nível: ${a.nivel}
+Ferramentas: ${a.ferramentas?.join(', ') || '—'}
+Início da prep: ${a.inicioPrep}
+Semanas: ${a.periodizacao?.semanas?.length || 0}
+Mesociclos: ${a.periodizacao?.mesociclos?.map(m => m.nome + ' (sem.' + m.semanas + ')').join(', ') || '—'}
+` : 'Nenhum atleta selecionado.';
+
+  const systemPrompt = `Você é o assistente de preparação física do PADOTY BOXING, especialista em boxe de alto rendimento.
+Você tem acesso ao contexto do atleta e pode:
+1. CRIAR ou MODIFICAR sessões de treino específicas
+2. SUGERIR ajustes no cronograma
+3. RESPONDER dúvidas sobre periodização, fisiologia e boxe
+4. ANALISAR a periodização atual
+
+CONTEXTO ATUAL:
+${contexto}
+
+REGRAS DE RESPOSTA:
+- Seja direto e prático — linguagem de treinador, não de professor
+- Quando criar/modificar uma sessão, estruture assim:
+  PROPOSTA: [título]
+  Aquecimento: ...
+  Principal: ...
+  Sparring: ...
+  Fortalecimento: ...
+  Observação: ...
+- Quando sugerir ajuste no cronograma, descreva claramente o que mudar e por quê
+- Para perguntas gerais, responda em 3-5 linhas no máximo
+- Sempre pergunte em qual semana/dia aplicar se não ficou claro
+- Se o usuário confirmar uma proposta, ela será aplicada no app`;
+
+  try {
+    const resp = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-6',
+        max_tokens: 1000,
+        system: systemPrompt,
+        messages: _chatHistorico
+      })
+    });
+    const data = await resp.json();
+    const resposta = data.content?.map(b => b.text || '').join('') || 'Erro na resposta.';
+
+    removerDigitando();
+    adicionarMsgChat(resposta, 'ia');
+    _chatHistorico.push({ role: 'assistant', content: resposta });
+
+    // Detectar se a IA gerou uma proposta de sessão ou ajuste
+    if (resposta.includes('PROPOSTA:') || resposta.includes('Aquecimento:') || resposta.includes('Principal:')) {
+      _propostaPendente = { tipo: 'sessao', texto: resposta };
+      document.getElementById('chat-ia-proposta').textContent = resposta;
+      document.getElementById('chat-ia-confirmacao').classList.remove('hidden');
+    }
+
+  } catch(e) {
+    removerDigitando();
+    adicionarMsgChat('Erro ao conectar com a IA. Tente novamente.', 'ia');
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+function confirmarPropostaIA() {
+  if (!_propostaPendente) return;
+  const texto = _propostaPendente.texto;
+
+  // Extrair campos da proposta para preencher o modal de edição
+  const getcampo = (label) => {
+    const regex = new RegExp(label + ':\\s*([^\\n]+(?:\\n(?![A-Z][^:]+:)[^\\n]+)*)', 'i');
+    const m = texto.match(regex);
+    return m ? m[1].trim() : '';
+  };
+
+  // Abrir modal de edição com os dados da proposta
+  const foco = getcamp('PROPOSTA') || getcamp('Título') || 'Sessão gerada pela IA';
+  document.getElementById('edit-foco') && (document.getElementById('edit-foco').value = foco);
+  document.getElementById('edit-aquecimento') && (document.getElementById('edit-aquecimento').value = getcamp('Aquecimento'));
+  document.getElementById('edit-principal') && (document.getElementById('edit-principal').value = getcamp('Principal'));
+  document.getElementById('edit-sparring') && (document.getElementById('edit-sparring').value = getcamp('Sparring'));
+  document.getElementById('edit-forcamento') && (document.getElementById('edit-forcamento').value = getcamp('Fortalecimento'));
+  document.getElementById('edit-obs') && (document.getElementById('edit-obs').value = getcamp('Observação') || getcamp('Obs'));
+
+  recusarPropostaIA();
+  adicionarMsgChat('Proposta aplicada nos campos de edição! Abra o modal de edição da sessão desejada para revisar e salvar.', 'ia');
+
+  // Guardar proposta no histórico
+  _chatHistorico.push({ role: 'user', content: 'Confirmado — aplicar a proposta.' });
+  _chatHistorico.push({ role: 'assistant', content: 'Proposta aplicada com sucesso!' });
+}
+
+function getcamp(label) {
+  const txt = _propostaPendente?.texto || '';
+  const regex = new RegExp(label + ':\\s*([^\\n]+(?:\\n(?![A-Z][^:]+:)[^\\n]+)*)', 'i');
+  const m = txt.match(regex);
+  return m ? m[1].trim() : '';
+}
+
+function recusarPropostaIA() {
+  _propostaPendente = null;
+  document.getElementById('chat-ia-confirmacao').classList.add('hidden');
+}
+
+// Enter no chat envia (Shift+Enter = nova linha)
+document.addEventListener('DOMContentLoaded', () => {
+  const chatInput = document.getElementById('chat-ia-input');
+  if (chatInput) {
+    chatInput.addEventListener('keydown', e => {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        enviarMensagemIA();
+      }
+    });
+  }
+});
+
+// Helper — verifica se o app está em HTTPS (obrigatório pra chamadas de IA)
+function verificarAmbienteIA() {
+  if (window.location.protocol === 'file:') {
+    showToast('⚠️ Funcionalidades de IA só funcionam no app hospedado (GitHub Pages). Suba a versão atualizada.', 'erro');
+    return false;
+  }
+  return true;
+}
+
 // ======= PROPÓSITO =======
 function renderProposito() {
   const a = state.atletaAtual;
@@ -4573,6 +4969,7 @@ function salvarProposito() {
 }
 
 async function gerarDevolutivaAtleta() {
+  if (!verificarAmbienteIA()) return;
   const a = state.atletaAtual;
   if (!a || !a.proposito) { showToast('Preencha e salve antes', 'erro'); return; }
   const p = a.proposito;
@@ -4619,6 +5016,7 @@ Escreva a reflexão para ele.`;
 }
 
 async function gerarAnaliseTreinador() {
+  if (!verificarAmbienteIA()) return;
   const a = state.atletaAtual;
   if (!a || !a.proposito) { showToast('O atleta ainda não preencheu o questionário', 'erro'); return; }
   const p = a.proposito;
@@ -5049,6 +5447,7 @@ function salvarPerfilTreinador() {
 }
 
 async function gerarPerfilTatico() {
+  if (!verificarAmbienteIA()) return;
   const a = state.atletaAtual;
   if (!a || !a.perfilComportamental) return;
   const pc = a.perfilComportamental;
@@ -5707,9 +6106,56 @@ document.getElementById('login-atleta-senha').addEventListener('keydown', e => {
 // Verificar modo público ao carregar
 // Se a URL tiver ?perfil=... mostra a página do agente em vez do login
 if (!verificarModoPublico()) {
-  // Modo normal — app com login
-  document.getElementById('login-screen').style.display = 'flex';
-}
-</script>
+  // Tentar restaurar sessão salva
+  (async () => {
+    try {
+      const sessaoSalva = JSON.parse(localStorage.getItem('padoty_sessao') || 'null');
+      if (sessaoSalva?.logado) {
+        // Carregar dados do Firebase/local
+        await carregarEstado();
+
+        if (sessaoSalva.perfil === 'treinador') {
+          state.perfil = 'treinador';
+          state.logado = true;
+          document.getElementById('login-screen').style.display = 'none';
+          document.getElementById('app').style.display = 'block';
+          document.getElementById('nav-tabs-treinador').classList.remove('hidden');
+          document.getElementById('nav-tabs-atleta').classList.add('hidden');
+          document.getElementById('btn-trocar-atleta').classList.remove('hidden');
+          document.getElementById('ia-fab').classList.remove('hidden');
+          atualizarUI();
+          showTab('dashboard');
+
+        } else if (sessaoSalva.perfil === 'atleta' && sessaoSalva.atletaAtualId) {
+          const atleta = state.atletas.find(a => a.id === sessaoSalva.atletaAtualId);
+          if (atleta) {
+            state.perfil = 'atleta';
+            state.atletaAtual = atleta;
+            state.logado = true;
+            document.getElementById('login-screen').style.display = 'none';
+            document.getElementById('app').style.display = 'block';
+            document.getElementById('nav-tabs-treinador').classList.add('hidden');
+            document.getElementById('nav-tabs-atleta').classList.remove('hidden');
+            document.getElementById('btn-trocar-atleta').classList.add('hidden');
+            atualizarUI();
+            showTab('sessao');
+          } else {
+            // Atleta não encontrado — pedir login novamente
+            limparSessaoLogin();
+            document.getElementById('login-screen').style.display = 'flex';
+          }
+        } else {
+          limparSessaoLogin();
+          document.getElementById('login-screen').style.display = 'flex';
+        }
+      } else {
+        document.getElementById('login-screen').style.display = 'flex';
+      }
+    } catch(e) {
+      limparSessaoLogin();
+      document.getElementById('login-screen').style.display = 'flex';
+    }
+  })();
+}</script>
 </body>
 </html>
