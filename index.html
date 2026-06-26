@@ -4941,19 +4941,38 @@ async function chamarIA(system, userMsg, maxTokens = 1000) {
 
 async function chamarGemini(system, userMsg, maxTokens, apiKey) {
   const key = apiKey || getChaveIA();
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${key}`;
-  const resp = await fetch(url, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      system_instruction: { parts: [{ text: system }] },
-      contents: [{ role: 'user', parts: [{ text: userMsg }] }],
-      generationConfig: { maxOutputTokens: maxTokens, temperature: 0.7 }
-    })
-  });
-  const data = await resp.json();
-  if (data.error) throw new Error(data.error.message);
-  return data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+  // Tenta modelos em ordem até um funcionar
+  const modelos = [
+    'gemini-1.5-flash',
+    'gemini-2.0-flash',
+    'gemini-1.0-pro',
+  ];
+
+  let ultimoErro = null;
+  for (const modelo of modelos) {
+    try {
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelo}:generateContent?key=${key}`;
+      const resp = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          system_instruction: { parts: [{ text: system }] },
+          contents: [{ role: 'user', parts: [{ text: userMsg }] }],
+          generationConfig: { maxOutputTokens: maxTokens, temperature: 0.7 }
+        })
+      });
+      const data = await resp.json();
+      if (data.error) {
+        ultimoErro = new Error(data.error.message);
+        continue; // tenta próximo modelo
+      }
+      return data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+    } catch(e) {
+      ultimoErro = e;
+      continue;
+    }
+  }
+  throw ultimoErro || new Error('Nenhum modelo disponível');
 }
 
 async function chamarAnthropic(system, userMsg, maxTokens) {
