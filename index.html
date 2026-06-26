@@ -1771,6 +1771,19 @@
       <div style="font-size:0.68rem;color:var(--cinza);margin-top:0.4rem;">Use quando o app não atualizar após nova versão</div>
     </div>
 
+    <!-- CONFIGURAÇÃO DA CHAVE DE IA -->
+    <div style="background:var(--grafite);border:1px solid var(--dourado);border-radius:8px;padding:1rem;margin-bottom:1rem;">
+      <div style="font-size:0.7rem;letter-spacing:0.15em;color:var(--dourado);text-transform:uppercase;margin-bottom:0.5rem;">🤖 Chave da IA (Google Gemini)</div>
+      <div style="font-size:0.72rem;color:var(--cinza);margin-bottom:0.6rem;">Cole aqui a chave do Google AI Studio. Fica salva só neste dispositivo, nunca vai pro GitHub.</div>
+      <div style="display:flex;gap:0.5rem;">
+        <input type="password" id="config-api-key" placeholder="Cole a chave aqui..."
+          style="flex:1;background:var(--card);border:1px solid var(--borda);border-radius:4px;padding:0.5rem;color:var(--branco);font-size:0.82rem;outline:none;">
+        <button onclick="toggleSenha('config-api-key', this)" style="background:none;border:1px solid var(--borda);color:var(--cinza);border-radius:4px;padding:0.4rem 0.6rem;cursor:pointer;">👁</button>
+      </div>
+      <button class="btn-gold" onclick="salvarChaveIA()" style="width:100%;margin-top:0.5rem;padding:0.6rem;">SALVAR CHAVE</button>
+      <div id="config-api-status" style="font-size:0.7rem;color:var(--cinza);margin-top:0.4rem;text-align:center;"></div>
+    </div>
+
     <div id="atletas-lista"></div>
   </div>
 </div>
@@ -2836,7 +2849,7 @@ function showTab(tab) {
   if (tab === 'proposito') renderProposito();
   if (tab === 'perfil') renderPerfilComportamental();
   if (tab === 'notas') renderNotas();
-  if (tab === 'atletas') renderAtletas();
+  if (tab === 'atletas') { renderAtletas(); renderConfigChaveIA(); }
 }
 
 // ======= UI GERAL =======
@@ -3180,18 +3193,7 @@ ESTRUTURE A PERIODIZAÇÃO EM:
    - Quando modificar o plano`;
 
   try {
-    const resp = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-6',
-        max_tokens: 1000,
-        system: systemPrompt,
-        messages: [{ role: 'user', content: userPrompt }]
-      })
-    });
-    const data = await resp.json();
-    const texto = data.content?.map(b => b.text || '').join('') || 'Erro ao gerar periodização.';
+    const texto = await chamarIA(systemPrompt, userPrompt, 1000);
     document.getElementById('ia-texto').textContent = texto;
     state._iaTexto = texto;
   } catch(e) {
@@ -3367,18 +3369,7 @@ Responda APENAS com este JSON (sem markdown, sem texto antes ou depois):
 }`;
 
   try {
-    const resp = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-6',
-        max_tokens: 1000,
-        system: systemPrompt,
-        messages: [{ role: 'user', content: userPrompt }]
-      })
-    });
-    const data = await resp.json();
-    let texto = data.content?.map(b => b.text || '').join('') || '';
+    let texto = await chamarIA(systemPrompt, userPrompt, 1000);
     texto = texto.replace(/```json|```/g, '').trim();
     const sessao = JSON.parse(texto);
 
@@ -3560,14 +3551,7 @@ async function analisarPeriodizacaoCompleta() {
   const resumo = resumirPeriodizacaoParaIA(a);
 
   try {
-    const resp = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-6',
-        max_tokens: 1000,
-        system: SYSTEM_ANALISE,
-        messages: [{ role: 'user', content: `Analise esta periodização completa de boxe e dê seu parecer técnico detalhado:
+    const _msgAnalise = `Analise esta periodização completa de boxe e dê seu parecer técnico detalhado:
 
 ${resumo}
 
@@ -3580,11 +3564,8 @@ Avalie:
 6. PONTOS CRÍTICOS — o que DEVE ser ajustado antes da luta?
 7. PONTOS POSITIVOS — o que está bem estruturado?
 
-Seja direto: diga "está alto", "está baixo", "está ok", "recomendo mudar X para Y".` }]
-      })
-    });
-    const data = await resp.json();
-    const texto = data.content?.map(b => b.text || '').join('') || 'Erro ao analisar.';
+Seja direto: diga "está alto", "está baixo", "está ok", "recomendo mudar X para Y".`;
+    const texto = await chamarIA(SYSTEM_ANALISE, _msgAnalise, 1000);
     elTexto.textContent = texto;
   } catch(e) {
     elTexto.textContent = 'Erro ao conectar com a IA.';
@@ -3622,14 +3603,7 @@ async function analisarSemana(semIdx) {
   });
 
   try {
-    const resp = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-6',
-        max_tokens: 1000,
-        system: SYSTEM_ANALISE,
-        messages: [{ role: 'user', content: `Analise este microciclo de boxe e dê seu parecer técnico:
+    const _msgSemana = `Analise este microciclo de boxe e dê seu parecer técnico:
 
 CONTEXTO DO ATLETA: ${a.nome} | ${a.nivel} | Luta em ${formatarData(a.dataLuta)} | Ferramentas: ${a.ferramentas?.join(', ')}
 
@@ -3643,11 +3617,8 @@ Avalie de forma DIRETA e ESPECÍFICA:
 5. RECUPERAÇÃO — os dias técnicos (Ter/Qui) estão dando recuperação suficiente?
 6. O QUE AJUSTAR — recomendações concretas de mudança com justificativa fisiológica.
 
-Seja direto: "a sessão de Seg está com volume alto, recomendo reduzir de X para Y porque..."` }]
-      })
-    });
-    const data = await resp.json();
-    const texto = data.content?.map(b => b.text || '').join('') || 'Erro ao analisar.';
+Seja direto: "a sessão de Seg está com volume alto, recomendo reduzir de X para Y porque..."`;
+    const texto = await chamarIA(SYSTEM_ANALISE, _msgSemana, 1000);
     elTexto.textContent = texto;
   } catch(e) {
     elTexto.textContent = 'Erro ao conectar com a IA.';
@@ -4577,18 +4548,7 @@ Fortalecimento: ${forcamento || '—'}
 Análise direta: o que está certo e o que precisa ajustar nessa sessão?`;
 
   try {
-    const resp = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-6',
-        max_tokens: 500,
-        system,
-        messages: [{ role: 'user', content: user }]
-      })
-    });
-    const data = await resp.json();
-    const texto = data.content?.map(b => b.text || '').join('') || '';
+    const texto = await chamarIA(system, user, 500);
     resultEl.textContent = texto;
     resultEl.classList.remove('hidden');
   } catch(e) {
@@ -4657,18 +4617,7 @@ Responda APENAS com este JSON:
 }`;
 
   try {
-    const resp = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-6',
-        max_tokens: 1000,
-        system: systemPrompt,
-        messages: [{ role: 'user', content: userPrompt }]
-      })
-    });
-    const data = await resp.json();
-    let texto = data.content?.map(b => b.text || '').join('') || '';
+    let texto = await chamarIA(systemPrompt, userPrompt, 1000);
     texto = texto.replace(/```json|```/g, '').trim();
     const corrigido = JSON.parse(texto);
 
@@ -4700,20 +4649,11 @@ async function gerarProtocoloTestes() {
   showToast('⏳ Gerando protocolo...');
 
   try {
-    const resp = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-6',
-        max_tokens: 1000,
-        system: `Você é fisiologista do exercício especialista em boxe. Baseie-se em Chaabène et al. (2015), Ruddock et al. (2016), Davis et al. (2015) e Bompa & Haff (2009). Responda em português brasileiro de forma objetiva e prática para um treinador.`,
-        messages: [{ role: 'user', content: `Atleta: ${a.nome} | Prep: ${numSemanas} semanas | Nível: ${a.nivel}
+    const _sysProto = `Você é fisiologista do exercício especialista em boxe. Baseie-se em Chaabène et al. (2015), Ruddock et al. (2016), Davis et al. (2015) e Bompa & Haff (2009). Responda em português brasileiro de forma objetiva e prática para um treinador.`;
+    const _msgProto = `Atleta: ${a.nome} | Prep: ${numSemanas} semanas | Nível: ${a.nivel}
 Testes disponíveis: Burpees 3min, Beep Test 15m, Esteira incremental, Flexões máx, Agachamentos máx, Velocidade de soco 10s, Resistência específica rounds, T-Test agilidade, CMJ, Preensão manual, FC recuperação.
-Recomende QUANDO aplicar cada teste durante as ${numSemanas} semanas. Justifique fisiologicamente. Quais priorizar em cada fase (Base, Intensidade, Taper). Seja conciso e direto.` }]
-      })
-    });
-    const data = await resp.json();
-    const texto = data.content?.map(b => b.text || '').join('') || '';
+Recomende QUANDO aplicar cada teste durante as ${numSemanas} semanas. Justifique fisiologicamente. Quais priorizar em cada fase (Base, Intensidade, Taper). Seja conciso e direto.`;
+    const texto = await chamarIA(_sysProto, _msgProto, 1000);
     alert('🤖 PROTOCOLO DE AVALIAÇÕES — PADOTY BOXING\n\n' + texto);
   } catch(e) {
     showToast('Erro ao gerar protocolo', 'erro');
@@ -4870,18 +4810,7 @@ REGRAS DE RESPOSTA:
 - Se o usuário confirmar uma proposta, ela será aplicada no app`;
 
   try {
-    const resp = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-6',
-        max_tokens: 1000,
-        system: systemPrompt,
-        messages: _chatHistorico
-      })
-    });
-    const data = await resp.json();
-    const resposta = data.content?.map(b => b.text || '').join('') || 'Erro na resposta.';
+    const resposta = await chamarIA(systemPrompt, _chatHistorico[_chatHistorico.length-1]?.content || '', 1000);
 
     removerDigitando();
     adicionarMsgChat(resposta, 'ia');
@@ -4954,6 +4883,78 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 });
+
+// ======= CONFIGURAÇÃO DA IA =======
+const GEMINI_API_KEY = ''; // chave fica no localStorage — não no código
+
+function getChaveIA() {
+  return localStorage.getItem('padoty_gemini_key') || '';
+}
+
+function salvarChaveIA() {
+  const chave = document.getElementById('config-api-key').value.trim();
+  if (!chave) { showToast('Cole a chave antes de salvar', 'erro'); return; }
+  localStorage.setItem('padoty_gemini_key', chave);
+  const status = document.getElementById('config-api-status');
+  if (status) { status.textContent = '✅ Chave salva neste dispositivo!'; status.style.color = 'var(--verde)'; }
+  showToast('Chave da IA salva!');
+}
+
+function renderConfigChaveIA() {
+  const chave = getChaveIA();
+  const input = document.getElementById('config-api-key');
+  const status = document.getElementById('config-api-status');
+  if (!input || !status) return;
+  if (chave) {
+    input.value = chave;
+    status.textContent = '✅ Chave configurada neste dispositivo';
+    status.style.color = 'var(--verde)';
+  } else {
+    status.textContent = '⚠️ Nenhuma chave — funções de IA indisponíveis';
+    status.style.color = 'var(--dourado)';
+  }
+}
+
+async function chamarIA(system, userMsg, maxTokens = 1000) {
+  const chave = getChaveIA();
+  if (chave) {
+    return await chamarGemini(system, userMsg, maxTokens, chave);
+  }
+  return await chamarAnthropic(system, userMsg, maxTokens);
+}
+
+async function chamarGemini(system, userMsg, maxTokens, apiKey) {
+  const key = apiKey || getChaveIA();
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${key}`;
+  const resp = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      system_instruction: { parts: [{ text: system }] },
+      contents: [{ role: 'user', parts: [{ text: userMsg }] }],
+      generationConfig: { maxOutputTokens: maxTokens, temperature: 0.7 }
+    })
+  });
+  const data = await resp.json();
+  if (data.error) throw new Error(data.error.message);
+  return data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+}
+
+async function chamarAnthropic(system, userMsg, maxTokens) {
+  const resp = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      model: 'claude-sonnet-4-6',
+      max_tokens: maxTokens,
+      system,
+      messages: [{ role: 'user', content: userMsg }]
+    })
+  });
+  const data = await resp.json();
+  if (data.error) throw new Error(data.error.message);
+  return data.content?.map(b => b.text || '').join('') || '';
+}
 
 // Helper — verifica se o app está em HTTPS (obrigatório pra chamadas de IA)
 function verificarAmbienteIA() {
@@ -5068,18 +5069,7 @@ Rede de apoio: ${p.suporte || '—'}
 Escreva a reflexão para ele.`;
 
   try {
-    const resp = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-6',
-        max_tokens: 1000,
-        system: systemPrompt,
-        messages: [{ role: 'user', content: userPrompt }]
-      })
-    });
-    const data = await resp.json();
-    const texto = data.content?.map(b => b.text || '').join('') || '';
+    const texto = await chamarIA(systemPrompt, userPrompt, 1000);
     a.proposito.devolutiva = texto;
     salvarEstado();
     renderProposito();
@@ -5123,18 +5113,7 @@ Autoimagem: ${p.autoimagem || '—'}
 Rede de apoio: ${p.suporte || '—'}`;
 
   try {
-    const resp = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-6',
-        max_tokens: 1000,
-        system: systemPrompt,
-        messages: [{ role: 'user', content: userPrompt }]
-      })
-    });
-    const data = await resp.json();
-    const texto = data.content?.map(b => b.text || '').join('') || '';
+    const texto = await chamarIA(systemPrompt, userPrompt, 1000);
     a.proposito.analiseTreinador = texto;
     salvarEstado();
     renderProposito();
@@ -5581,18 +5560,7 @@ Controle sob pressão: ${dadosTreinador.controle}
 Gere o perfil tático.`;
 
   try {
-    const resp = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-6',
-        max_tokens: 1000,
-        system: systemPrompt,
-        messages: [{ role: 'user', content: userPrompt }]
-      })
-    });
-    const data = await resp.json();
-    const texto = data.content?.map(b => b.text || '').join('') || '';
+    const texto = await chamarIA(systemPrompt, userPrompt, 1000);
     a.perfilComportamental.resultado = texto;
     a.perfilComportamental.dadosAtleta = dadosAtleta;
     a.perfilComportamental.dadosTreinador = dadosTreinador;
