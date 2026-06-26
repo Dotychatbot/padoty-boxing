@@ -2169,6 +2169,7 @@ const PSE_DESC = {
 // ======= LOCAL STORAGE (fallback) + FIRESTORE (principal) =======
 let _salvandoFirebase = false;
 let _ultimoSalvamentoLocal = null;
+let _ultimoSalvamentoTimestamp = null;
 
 function salvarEstadoLocal() {
   const payload = {
@@ -2192,6 +2193,9 @@ function limparSessaoLogin() {
 }
 
 async function salvarEstado() {
+  // Registrar timestamp do salvamento pra proteger contra sobrescrita pelo onSnapshot
+  _ultimoSalvamentoTimestamp = Date.now();
+
   // Sempre salva local primeiro — garante que nada se perde mesmo offline
   salvarEstadoLocal();
 
@@ -2310,6 +2314,14 @@ function ativarSyncTempoReal() {
     if (!snap.exists || _salvandoFirebase || modalAberto) return;
 
     const d = snap.data();
+
+    // Não sobrescrever se os dados locais são mais recentes
+    // (compara timestamp do Firestore com o último salvamento local)
+    if (d.atualizadoEm && _ultimoSalvamentoTimestamp) {
+      const tsRemoto = new Date(d.atualizadoEm).getTime();
+      if (tsRemoto < _ultimoSalvamentoTimestamp) return; // dado local é mais novo
+    }
+
     const payloadRecebido = JSON.stringify({ atletas: d.atletas, atletaAtualId: d.atletaAtualId });
     if (payloadRecebido === _ultimoSalvamentoLocal) return;
 
@@ -4825,7 +4837,11 @@ REGRAS DE RESPOSTA:
 
   } catch(e) {
     removerDigitando();
-    adicionarMsgChat('Erro ao conectar com a IA. Tente novamente.', 'ia');
+    const msg = e.message?.includes('404') ? 'Modelo de IA não encontrado. Verifique a chave na aba Atletas.'
+      : e.message?.includes('403') ? 'Chave de API inválida ou sem permissão. Verifique na aba Atletas.'
+      : e.message?.includes('API_KEY') ? 'Chave não configurada. Vá em Atletas → 🤖 Chave da IA e salve sua chave.'
+      : `Erro: ${e.message || 'Tente novamente.'}`;
+    adicionarMsgChat(msg, 'ia');
   } finally {
     btn.disabled = false;
   }
@@ -4925,7 +4941,7 @@ async function chamarIA(system, userMsg, maxTokens = 1000) {
 
 async function chamarGemini(system, userMsg, maxTokens, apiKey) {
   const key = apiKey || getChaveIA();
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${key}`;
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${key}`;
   const resp = await fetch(url, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
