@@ -2718,6 +2718,7 @@ async function fazerLoginTreinador() {
     document.getElementById('btn-trocar-atleta').classList.remove('hidden');
     document.getElementById('ia-fab').classList.remove('hidden');
     salvarSessaoLogin();
+    carregarChaveIA(); // sincroniza chave de IA do Firebase
     atualizarUI();
     showTab('dashboard');
   } else {
@@ -5111,16 +5112,56 @@ document.addEventListener('DOMContentLoaded', () => {
 const GEMINI_API_KEY = ''; // chave fica no localStorage — não no código
 
 function getChaveIA() {
-  return localStorage.getItem('padoty_gemini_key') || '';
+  // Busca primeiro no localStorage (cache local), depois no state (sincronizado do Firebase)
+  return localStorage.getItem('padoty_gemini_key') || state.chaveIA || '';
 }
 
-function salvarChaveIA() {
+async function salvarChaveIA() {
   const chave = document.getElementById('config-api-key').value.trim();
   if (!chave) { showToast('Cole a chave antes de salvar', 'erro'); return; }
+
+  // Salva local imediatamente
   localStorage.setItem('padoty_gemini_key', chave);
+  state.chaveIA = chave;
+
+  // Salva no Firebase pra sincronizar com outros dispositivos
+  if (_fbDisponivel) {
+    try {
+      await garantirAuth();
+      await _db.collection('padoty_boxing').doc('config').set({
+        chaveIA: chave,
+        atualizadoEm: new Date().toISOString()
+      });
+    } catch(e) {
+      console.warn('Erro ao salvar chave no Firebase:', e);
+    }
+  }
+
   const status = document.getElementById('config-api-status');
-  if (status) { status.textContent = '✅ Chave salva neste dispositivo!'; status.style.color = 'var(--verde)'; }
-  showToast('Chave da IA salva!');
+  if (status) { status.textContent = '✅ Chave salva e sincronizada!'; status.style.color = 'var(--verde)'; }
+  showToast('Chave da IA salva em todos os dispositivos!');
+}
+
+async function carregarChaveIA() {
+  // Tenta carregar do Firebase primeiro
+  if (_fbDisponivel) {
+    try {
+      await garantirAuth();
+      const snap = await _db.collection('padoty_boxing').doc('config').get();
+      if (snap.exists && snap.data().chaveIA) {
+        const chave = snap.data().chaveIA;
+        localStorage.setItem('padoty_gemini_key', chave);
+        state.chaveIA = chave;
+        return chave;
+      }
+    } catch(e) {
+      console.warn('Erro ao carregar chave do Firebase:', e);
+    }
+  }
+  // Fallback: localStorage
+  const local = localStorage.getItem('padoty_gemini_key');
+  if (local) state.chaveIA = local;
+  return local || '';
 }
 
 function renderConfigChaveIA() {
@@ -5130,7 +5171,7 @@ function renderConfigChaveIA() {
   if (!input || !status) return;
   if (chave) {
     input.value = chave;
-    status.textContent = '✅ Chave configurada neste dispositivo';
+    status.textContent = '✅ Chave configurada e sincronizada';
     status.style.color = 'var(--verde)';
   } else {
     status.textContent = '⚠️ Nenhuma chave — funções de IA indisponíveis';
