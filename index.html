@@ -1072,6 +1072,77 @@ document.head.appendChild(_appleIcon);
   pre, code { white-space: pre-wrap; word-break: break-word; }
   input, textarea, select { max-width: 100%; }
 
+
+    /* ===== PWA INSTALL BANNER ===== */
+    #pwa-install-banner {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+      border-top: 2px solid var(--accent);
+      padding: 1rem 1.5rem;
+      z-index: 9999;
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      box-shadow: 0 -4px 24px rgba(0,0,0,0.4);
+      transform: translateY(100%);
+      transition: transform 0.4s ease;
+    }
+    #pwa-install-banner.visible { transform: translateY(0); }
+    .pwa-banner-icon { font-size: 2rem; flex-shrink: 0; }
+    .pwa-banner-text { flex: 1; }
+    .pwa-banner-text strong { display: block; color: #fff; font-size: 0.9rem; margin-bottom: 0.2rem; }
+    .pwa-banner-text span { color: #aaa; font-size: 0.75rem; }
+    .pwa-banner-actions { display: flex; gap: 0.5rem; flex-shrink: 0; }
+    .btn-pwa-install {
+      background: var(--accent); color: #fff; border: none;
+      padding: 0.5rem 1rem; border-radius: 8px;
+      font-size: 0.8rem; font-weight: 700; cursor: pointer; letter-spacing: 0.5px;
+    }
+    .btn-pwa-dismiss {
+      background: transparent; color: #aaa; border: 1px solid #444;
+      padding: 0.5rem 0.8rem; border-radius: 8px; font-size: 0.8rem; cursor: pointer;
+    }
+    #pwa-ios-modal {
+      display: none; position: fixed; inset: 0;
+      background: rgba(0,0,0,0.8); z-index: 10000;
+      align-items: flex-end; justify-content: center; padding: 1rem;
+    }
+    #pwa-ios-modal.open { display: flex; }
+    .pwa-ios-card {
+      background: #1e1e1e; border-radius: 16px 16px 0 0;
+      padding: 1.5rem; width: 100%; max-width: 480px;
+      border-top: 2px solid var(--accent);
+    }
+    .pwa-ios-card h3 { color: #fff; margin: 0 0 1rem; font-size: 1rem; }
+    .pwa-ios-step { display: flex; align-items: flex-start; gap: 0.75rem; margin-bottom: 0.8rem; }
+    .pwa-ios-step .step-num {
+      background: var(--accent); color: #fff; width: 24px; height: 24px;
+      border-radius: 50%; display: flex; align-items: center; justify-content: center;
+      font-size: 0.75rem; font-weight: 700; flex-shrink: 0;
+    }
+    .pwa-ios-step p { color: #ccc; font-size: 0.85rem; margin: 0; line-height: 1.4; }
+    .pwa-ios-step p strong { color: #fff; }
+
+
+    .hist-filtro {
+      background: transparent;
+      border: 1px solid var(--borda);
+      color: var(--cinza);
+      padding: 0.25rem 0.65rem;
+      border-radius: 20px;
+      font-size: 0.7rem;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .hist-filtro.active {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: #fff;
+    }
+
 </style>
 </head>
 <body>
@@ -1120,7 +1191,12 @@ document.head.appendChild(_appleIcon);
     </div>
 
     <button class="btn-primary" onclick="fazerLogin()">ENTRAR</button>
-    <p style="text-align:center;font-size:0.7rem;color:var(--cinza);margin-top:1rem;">
+    <p style="text-align:center;margin-top:0.75rem;">
+      <button onclick="mostrarEsqueciAcesso()" style="background:none;border:none;color:var(--cinza);font-size:0.72rem;cursor:pointer;text-decoration:underline;text-underline-offset:2px;">
+        Esqueci meu código / senha
+      </button>
+    </p>
+    <p style="text-align:center;font-size:0.7rem;color:var(--cinza);margin-top:0.5rem;">
       CREF 142588-G/SP · Fábio · PADOTY Saúde e Movimento
     </p>
   </div>
@@ -1138,6 +1214,9 @@ document.head.appendChild(_appleIcon);
     </div>
   </header>
 
+  <div style="position:fixed;top:0;right:0;z-index:100;padding:0.5rem;">
+    <button id="btn-pwa-header" onclick="pwaInstalar()" title="Instalar como app" style="display:none;background:rgba(231,76,60,0.15);border:1px solid var(--accent);color:var(--accent);padding:0.3rem 0.7rem;border-radius:20px;font-size:0.7rem;font-weight:700;cursor:pointer;">📲 Instalar App</button>
+  </div>
   <nav class="nav-tabs" id="nav-tabs-treinador">
     <div class="nav-tab active" onclick="showTab('dashboard')">Dashboard</div>
     <div class="nav-tab" onclick="showTab('periodizacao')">Periodização</div>
@@ -1147,6 +1226,7 @@ document.head.appendChild(_appleIcon);
     <div class="nav-tab" onclick="showTab('proposito')">Propósito</div>
     <div class="nav-tab" onclick="showTab('perfil')">Perfil</div>
     <div class="nav-tab" onclick="showTab('relatorios')">Relatórios</div>
+    <div class="nav-tab" onclick="showTab('comparativo')">Comparativo</div>
     <div class="nav-tab" onclick="showTab('notas')">Notas</div>
     <div class="nav-tab" onclick="showTab('atletas')">Atletas</div>
   </nav>
@@ -1321,6 +1401,11 @@ document.head.appendChild(_appleIcon);
     <div class="card">
       <div class="card-title">✅ Check-in — <span class="accent" id="checkin-data-label">Hoje</span></div>
 
+      <!-- Mensagem de acolhimento após ausência -->
+      <div id="msg-acolhimento-container" class="hidden" style="background:rgba(100,149,237,0.1);border:1px solid #6495ED;border-radius:8px;padding:0.85rem;margin-bottom:1rem;font-size:0.85rem;color:#aac4f0;line-height:1.5;">
+        <span id="msg-acolhimento"></span>
+      </div>
+
       <div class="input-group">
         <label>⚖️ Peso Corporal</label>
         <div style="display:flex;align-items:center;gap:0.5rem;">
@@ -1353,8 +1438,35 @@ document.head.appendChild(_appleIcon);
       </div>
 
       <div class="input-group">
+        <label>💙 Como você está hoje? <small style="color:var(--cinza);font-weight:normal;">(motivação/humor)</small></label>
+        <div style="display:flex;gap:0.5rem;flex-wrap:wrap;" id="motivacao-selector">
+          <button type="button" class="ferramenta-tag" data-mot="1" onclick="selecionarMotivacao(1)" style="flex:1;min-width:0;text-align:center;">😔<br><span style="font-size:0.65rem;">Muito mal</span></button>
+          <button type="button" class="ferramenta-tag" data-mot="2" onclick="selecionarMotivacao(2)" style="flex:1;min-width:0;text-align:center;">😕<br><span style="font-size:0.65rem;">Mal</span></button>
+          <button type="button" class="ferramenta-tag" data-mot="3" onclick="selecionarMotivacao(3)" style="flex:1;min-width:0;text-align:center;">😐<br><span style="font-size:0.65rem;">Regular</span></button>
+          <button type="button" class="ferramenta-tag" data-mot="4" onclick="selecionarMotivacao(4)" style="flex:1;min-width:0;text-align:center;">🙂<br><span style="font-size:0.65rem;">Bem</span></button>
+          <button type="button" class="ferramenta-tag" data-mot="5" onclick="selecionarMotivacao(5)" style="flex:1;min-width:0;text-align:center;">😄<br><span style="font-size:0.65rem;">Muito bem</span></button>
+        </div>
+      </div>
+
+      <div class="input-group">
         <label>Observações do Atleta</label>
         <textarea id="checkin-obs" rows="3" placeholder="Como foi o treino hoje?"></textarea>
+      </div>
+
+      <!-- Registro de falta — só aparece quando atleta clica "Não Treinei Hoje" -->
+      <div id="checkin-falta-group" class="hidden" style="background:rgba(231,76,60,0.08);border:1px solid var(--vermelho);border-radius:8px;padding:1rem;margin-bottom:0.75rem;">
+        <div style="font-size:0.8rem;color:var(--vermelho);font-weight:600;margin-bottom:0.75rem;">⚠️ Registrar Ausência</div>
+        <label style="font-size:0.8rem;color:var(--cinza);display:block;margin-bottom:0.5rem;">Motivo da falta:</label>
+        <div style="display:flex;flex-direction:column;gap:0.4rem;" id="falta-motivos">
+          <label style="display:flex;align-items:center;gap:0.5rem;font-size:0.85rem;cursor:pointer;"><input type="radio" name="motivo-falta" value="cansaco"> 😴 Cansaço / esgotamento</label>
+          <label style="display:flex;align-items:center;gap:0.5rem;font-size:0.85rem;cursor:pointer;"><input type="radio" name="motivo-falta" value="emocional"> 💙 Questões emocionais / mentais</label>
+          <label style="display:flex;align-items:center;gap:0.5rem;font-size:0.85rem;cursor:pointer;"><input type="radio" name="motivo-falta" value="trabalho"> 🏢 Trabalho / compromisso</label>
+          <label style="display:flex;align-items:center;gap:0.5rem;font-size:0.85rem;cursor:pointer;"><input type="radio" name="motivo-falta" value="dor"> 🤕 Dor / lesão</label>
+          <label style="display:flex;align-items:center;gap:0.5rem;font-size:0.85rem;cursor:pointer;"><input type="radio" name="motivo-falta" value="nao_consegui"> 😔 Não consegui sair de casa</label>
+          <label style="display:flex;align-items:center;gap:0.5rem;font-size:0.85rem;cursor:pointer;"><input type="radio" name="motivo-falta" value="outro"> 📝 Outro motivo</label>
+        </div>
+        <textarea id="falta-obs" rows="2" placeholder="Quer me contar mais? (opcional)..." style="margin-top:0.75rem;font-size:0.85rem;"></textarea>
+        <button class="btn-primary" onclick="salvarFalta()" style="background:var(--vermelho);border-color:var(--vermelho);margin-top:0.5rem;font-size:0.85rem;">REGISTRAR FALTA</button>
       </div>
 
       <!-- Observação do treinador — só aparece no perfil treinador -->
@@ -1364,10 +1476,17 @@ document.head.appendChild(_appleIcon);
       </div>
 
       <button class="btn-primary" onclick="salvarCheckin()">SALVAR CHECK-IN</button>
+      <button type="button" onclick="toggleFalta()" id="btn-nao-treinei" style="width:100%;padding:0.85rem;background:transparent;border:1px solid var(--vermelho);color:var(--vermelho);border-radius:6px;font-size:0.85rem;letter-spacing:0.08em;cursor:pointer;margin-top:0.5rem;">❌ NÃO TREINEI HOJE</button>
     </div>
 
     <div class="card">
       <div class="card-title">📊 Histórico de <span class="accent">Check-ins</span></div>
+      <div style="display:flex;gap:0.4rem;flex-wrap:wrap;margin-bottom:0.75rem;" id="hist-filtros">
+        <button class="hist-filtro active" data-filtro="todos" onclick="setHistFiltro('todos')">Todos</button>
+        <button class="hist-filtro" data-filtro="treino" onclick="setHistFiltro('treino')">✅ Treinos</button>
+        <button class="hist-filtro" data-filtro="falta" onclick="setHistFiltro('falta')">❌ Faltas</button>
+        <button class="hist-filtro" data-filtro="pse_alta" onclick="setHistFiltro('pse_alta')">🔥 PSE Alta (≥8)</button>
+      </div>
       <div id="checkin-historico">
         <div style="font-size:0.8rem;color:var(--cinza);">Nenhum check-in registrado ainda.</div>
       </div>
@@ -1793,6 +1912,24 @@ document.head.appendChild(_appleIcon);
       <div style="font-size:0.78rem;color:var(--cinza);margin-bottom:1rem;">Resumo do que ele treinou, horas totais e evolução, em linguagem simples e direta.</div>
       <button class="btn-primary" onclick="gerarRelatorioAtleta()" style="width:100%;">GERAR PDF PARA O ATLETA</button>
     </div>
+
+    <div class="card" style="border-color:var(--dourado);background:linear-gradient(135deg,#1a1500,var(--card));">
+      <div class="card-title">🏆 Relatório <span class="accent">Empresário / Patrocinador</span><br><small style="font-size:0.75rem;color:var(--cinza);font-family:'Inter',sans-serif;letter-spacing:0;">Documento profissional para envio externo</small></div>
+      <div style="font-size:0.78rem;color:var(--cinza);margin-bottom:1rem;">PDF completo para empresário, patrocinador ou promotora: cartel, narrativa do atleta, resumo da prep, evolução física e PSE, presença e declaração do treinador.</div>
+      <button class="btn-gold" onclick="gerarRelatorioEmpresario()" style="width:100%;">⭐ GERAR RELATÓRIO PARA EMPRESÁRIO</button>
+    </div>
+  </div>
+
+  <!-- COMPARATIVO -->
+  <div id="tab-comparativo" class="content hidden">
+    <div class="section-header">
+      <div class="section-title">Comparativo de Atletas</div>
+    </div>
+    <div style="font-size:0.78rem;color:var(--cinza);margin-bottom:1rem;">Visão geral de todos os atletas — presença, PSE, peso e proximidade da luta.</div>
+    <div id="comparativo-lista">
+      <div style="font-size:0.8rem;color:var(--cinza);text-align:center;padding:2rem;">Nenhum atleta cadastrado ainda.</div>
+    </div>
+    <div id="comparativo-ranking" style="margin-top:1rem;"></div>
   </div>
 
   <!-- NOTAS -->
@@ -1938,15 +2075,70 @@ document.head.appendChild(_appleIcon);
       <label>Senha de Acesso do Atleta *</label>
       <input type="text" id="at-senha" placeholder="Ex: maguila2026">
     </div>
+    <!-- OBJETIVO / MODALIDADE -->
+    <div style="font-size:0.7rem;color:var(--dourado);text-transform:uppercase;letter-spacing:0.1em;margin:0.75rem 0 0.5rem;font-weight:600;">🎯 Objetivo e Modalidade</div>
+
     <div class="input-group">
-      <label>Data da Luta *</label>
-      <input type="date" id="at-luta">
+      <label>Modalidade Principal *</label>
+      <select id="at-modalidade" onchange="toggleCamposModalidade()">
+        <option value="boxe">🥊 Boxe</option>
+        <option value="musculacao">💪 Musculação</option>
+        <option value="condicionamento">🏃 Condicionamento Físico</option>
+        <option value="boxe_musculacao">🥊💪 Boxe + Musculação</option>
+        <option value="boxe_condicionamento">🥊🏃 Boxe + Condicionamento</option>
+        <option value="personalizado">⚙️ Personalizado (descrever)</option>
+      </select>
     </div>
+
+    <div class="input-group">
+      <label>Objetivo Principal da Prep</label>
+      <select id="at-objetivo">
+        <option value="luta">🥊 Preparação para luta</option>
+        <option value="base">📈 Ganho de base/condicionamento</option>
+        <option value="hipertrofia">💪 Hipertrofia</option>
+        <option value="emagrecimento">⚖️ Emagrecimento/cutting</option>
+        <option value="manutencao">🔄 Manutenção</option>
+        <option value="reabilitacao">🩹 Retorno após pausa/lesão</option>
+        <option value="saude_mental">💙 Bem-estar e saúde mental</option>
+        <option value="personalizado">📝 Personalizado (descrever)</option>
+      </select>
+    </div>
+
+    <div class="input-group" id="campo-objetivo-desc" style="display:none;">
+      <label>Descreva o objetivo</label>
+      <textarea id="at-objetivo-desc" rows="2" placeholder="Ex: Recuperar condicionamento após período de depressão, foco em bem-estar..."></textarea>
+    </div>
+
+    <!-- PRIORIDADES -->
+    <div style="font-size:0.7rem;color:var(--dourado);text-transform:uppercase;letter-spacing:0.1em;margin:0.75rem 0 0.5rem;font-weight:600;">⚡ Prioridades do Treino</div>
+    <div style="font-size:0.72rem;color:var(--cinza);margin-bottom:0.6rem;">Selecione o que a IA deve priorizar na periodização</div>
+    <div class="ferramentas-grid" id="prioridades-selector">
+      <span class="ferramenta-tag" data-p="Condicionamento aeróbio">❤️ Aeróbio</span>
+      <span class="ferramenta-tag" data-p="Força máxima">🏋️ Força</span>
+      <span class="ferramenta-tag" data-p="Potência explosiva">⚡ Potência</span>
+      <span class="ferramenta-tag" data-p="Técnica de boxe">🥊 Técnica boxe</span>
+      <span class="ferramenta-tag" data-p="Agilidade e footwork">👟 Agilidade</span>
+      <span class="ferramenta-tag" data-p="Resistência muscular">💪 Resist. muscular</span>
+      <span class="ferramenta-tag" data-p="Sparring e combate">🤼 Sparring</span>
+      <span class="ferramenta-tag" data-p="Hipertrofia">📈 Hipertrofia</span>
+      <span class="ferramenta-tag" data-p="Core e estabilidade">🎯 Core</span>
+      <span class="ferramenta-tag" data-p="Mobilidade e recuperação">🧘 Mobilidade</span>
+      <span class="ferramenta-tag" data-p="Bem-estar mental">💙 Bem-estar</span>
+      <span class="ferramenta-tag" data-p="Perda de peso">⚖️ Perda de peso</span>
+    </div>
+
+    <!-- DATAS -->
+    <div style="font-size:0.7rem;color:var(--dourado);text-transform:uppercase;letter-spacing:0.1em;margin:0.75rem 0 0.5rem;font-weight:600;">📅 Datas</div>
+
     <div class="input-group">
       <label>Início da Preparação *</label>
       <input type="date" id="at-inicio">
     </div>
-    <div class="input-group">
+    <div class="input-group" id="campo-data-luta">
+      <label>Data da Luta <small style="color:var(--cinza);font-weight:normal;">(opcional se não tiver luta marcada)</small></label>
+      <input type="date" id="at-luta">
+    </div>
+    <div class="input-group" id="campo-formato-luta">
       <label>Formato da Luta</label>
       <input type="text" id="at-formato" placeholder="Ex: 4 rounds x 3 min + 1 min descanso">
     </div>
@@ -1954,25 +2146,33 @@ document.head.appendChild(_appleIcon);
       <label>Categoria de Peso (kg)</label>
       <input type="text" id="at-categoria" placeholder="Ex: Meio-médio (69kg)">
     </div>
+
+    <!-- PERFIL -->
+    <div style="font-size:0.7rem;color:var(--dourado);text-transform:uppercase;letter-spacing:0.1em;margin:0.75rem 0 0.5rem;font-weight:600;">👤 Perfil</div>
+
     <div class="input-group">
       <label>Nível</label>
       <select id="at-nivel">
+        <option value="iniciante">Iniciante</option>
+        <option value="intermediario">Intermediário</option>
         <option value="amador">Amador</option>
         <option value="semipro">Semiprofissional</option>
         <option value="profissional" selected>Profissional</option>
       </select>
     </div>
     <div class="input-group">
-      <label>Foco Técnico Principal</label>
-      <input type="text" id="at-foco" placeholder="Ex: Movimentação de pernas, jab de distância">
+      <label>Foco Técnico / Observações</label>
+      <input type="text" id="at-foco" placeholder="Ex: Movimentação de pernas, jab, recuperação mental...">
     </div>
     <div class="input-group">
-      <label>Histórico de Lesões</label>
-      <textarea id="at-lesoes" rows="2" placeholder="Ex: Sem lesões / Ombro direito 2023"></textarea>
+      <label>Histórico de Lesões / Restrições</label>
+      <textarea id="at-lesoes" rows="2" placeholder="Ex: Sem lesões / Ombro direito 2023 / Ansiedade (acompanhamento psicológico)"></textarea>
     </div>
     <div class="input-group">
       <label>Dias de Treino por Semana</label>
       <select id="at-dias">
+        <option value="2">2 dias</option>
+        <option value="3">3 dias</option>
         <option value="4">4 dias</option>
         <option value="5">5 dias</option>
         <option value="6" selected>6 dias</option>
@@ -2216,6 +2416,7 @@ let state = {
   atletas: [],
   tabAtual: 'dashboard',
   pseSelecionado: null,
+  editandoAtletaId: null,
   sonoRating: 0,
   disposicaoRating: 0,
 };
@@ -2316,57 +2517,9 @@ async function carregarEstado() {
     }
   }
 
-  // Se não tem atleta, pré-cadastrar o Maguila
-  if (state.atletas.length === 0) {
-    state.atletas.push(criarAtletaMaguila());
+  // Sem pré-cadastro automático — atletas são criados pelo treinador
+  if (state.atletas.length > 0 && !state.atletaAtual) {
     state.atletaAtual = state.atletas[0];
-    await salvarEstado();
-  }
-  // Atualizar dados do Maguila preservando edições manuais nas sessões
-  const maguila = state.atletas.find(a => a.id === 'maguila_001');
-  if (maguila) {
-    const novo = criarAtletaMaguila();
-
-    // Só substitui a periodização se ainda não existe (primeiro acesso)
-    // ou se o número de semanas mudou (estrutura nova)
-    const temPeriodizacao = maguila.periodizacao?.semanas?.length > 0;
-    const mesmaTamanho = maguila.periodizacao?.semanas?.length === novo.periodizacao.semanas.length;
-
-    if (!temPeriodizacao) {
-      // Primeiro acesso — carrega tudo do zero
-      maguila.periodizacao = novo.periodizacao;
-    } else if (!mesmaTamanho) {
-      // Estrutura mudou — atualiza preservando edições
-      maguila.periodizacao.mesociclos = novo.periodizacao.mesociclos;
-      maguila.periodizacao.textoIA = novo.periodizacao.textoIA;
-    } else {
-      // Mesma estrutura — só corrigir sessões que estão sem checklist
-      let precisaSalvar = false;
-      maguila.periodizacao.semanas.forEach((sem, si) => {
-        sem.sessoes.forEach((s, di) => {
-          if (!s.checklist || s.checklist.length === 0) {
-            // Buscar sessão equivalente na versão nova pra pegar o checklist
-            const novaSessao = novo.periodizacao.semanas[si]?.sessoes[di];
-            if (novaSessao?.checklist?.length > 0) {
-              s.checklist = novaSessao.checklist;
-            } else {
-              s.checklist = gerarChecklistDaSessao(s);
-            }
-            if (!s.feitos) s.feitos = [];
-            precisaSalvar = true;
-          }
-        });
-      });
-      if (precisaSalvar) await salvarEstado();
-    }
-
-    maguila.focoTecnico = novo.focoTecnico;
-    maguila.inicioPrep = '2026-06-22';
-    maguila.diasSemana = 6;
-    maguila.codigoAcesso = maguila.codigoAcesso || 'maguila';
-    maguila.senhaAcesso = maguila.senhaAcesso || 'maguila2026';
-    if (!state.atletaAtual) state.atletaAtual = maguila;
-    await salvarEstado();
   }
 
   // Ativa sincronização em tempo real (outros dispositivos vendo as mesmas mudanças)
@@ -2748,6 +2901,17 @@ function selecionarPerfilLogin(perfil) {
   document.getElementById('login-campos-atleta').classList.toggle('hidden', perfil !== 'atleta');
 }
 
+
+// ===== HASH DE SENHA =====
+async function hashSenha(senha) {
+  const encoder = new TextEncoder();
+  const data = encoder.encode(senha + 'padoty_salt_2024');
+  const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+}
+// ===== FIM HASH =====
+
 async function fazerLogin() {
   if (state.perfilLoginSelecionado === 'atleta') {
     await fazerLoginAtleta();
@@ -2779,6 +2943,11 @@ async function fazerLoginTreinador() {
   }
 }
 
+
+function mostrarEsqueciAcesso() {
+  alert('Para recuperar seu acesso:\n\n📱 Entre em contato com seu treinador.\n\nO treinador pode resetar sua senha diretamente no aplicativo, na tela de Atletas.');
+}
+
 async function fazerLoginAtleta() {
   const codigo = document.getElementById('login-atleta-codigo').value.trim().toLowerCase();
   const senha = document.getElementById('login-atleta-senha').value;
@@ -2795,8 +2964,11 @@ async function fazerLoginAtleta() {
     await salvarEstado();
   }
 
+  const senhaHash = await hashSenha(senha);
+  // Compatível com senhas antigas (texto puro) e novas (hash SHA-256)
   const atleta = state.atletas.find(a =>
-    (a.codigoAcesso || '').toLowerCase() === codigo && a.senhaAcesso === senha
+    (a.codigoAcesso || '').toLowerCase() === codigo &&
+    (a.senhaAcesso === senhaHash || a.senhaAcesso === senha)
   );
 
   if (!atleta) {
@@ -2930,6 +3102,7 @@ function showTab(tab) {
   if (tab === 'proposito') renderProposito();
   if (tab === 'perfil') renderPerfilComportamental();
   if (tab === 'notas') renderNotas();
+  if (tab === 'comparativo') renderComparativo();
   if (tab === 'atletas') { renderAtletas(); renderConfigChaveIA(); }
 }
 
@@ -3240,6 +3413,24 @@ function abrirModalAtleta() {
   document.getElementById('modal-atleta').classList.remove('hidden');
 }
 
+
+function deletarAtleta(id) {
+  const a = state.atletas.find(x => x.id === id);
+  if (!a) return;
+  const checkinCount = a.checkins?.length || 0;
+  const msg = checkinCount > 0
+    ? 'Tem certeza que deseja remover ' + a.nome + '?\n\nISTO IRÁ APAGAR TODO O HISTÓRICO (' + checkinCount + ' check-ins).\n\nEssa ação NÃO pode ser desfeita.'
+    : 'Tem certeza que deseja remover ' + a.nome + '? Essa ação não pode ser desfeita.';
+  if (!confirm(msg)) return;
+  state.atletas = state.atletas.filter(x => x.id !== id);
+  if (state.atletaAtual?.id === id) {
+    state.atletaAtual = state.atletas[0] || null;
+  }
+  salvarEstado();
+  atualizarUI();
+  showToast('Atleta removido.');
+}
+
 function renderAtletas() {
   const el = document.getElementById('atletas-lista');
   if (state.atletas.length === 0) {
@@ -3258,13 +3449,15 @@ function renderAtletas() {
         </div>
         ${a.codigoAcesso ? `
         <div class="atleta-meta" style="margin-top:0.3rem;color:var(--dourado);display:flex;align-items:center;gap:0.5rem;flex-wrap:wrap;">
-          <span>🔑 Login: <b>${a.codigoAcesso}</b> / <b>${a.senhaAcesso}</b></span>
+          <span>🔑 Login: <b>${a.codigoAcesso}</b> / <b>••••••</b></span>
           <button onclick="event.stopPropagation(); resetarSenhaAtleta('${a.id}')" style="background:none;border:1px solid var(--dourado);color:var(--dourado);border-radius:4px;padding:0.15rem 0.5rem;font-size:0.65rem;cursor:pointer;">Resetar senha</button>
         </div>` : ''}
       </div>
       <div style="display:flex;flex-direction:column;gap:0.4rem;align-items:flex-end;">
         <span class="atleta-badge">${a.nivel}</span>
         ${a.checkins.length > 0 ? `<span style="font-size:0.7rem;color:var(--verde);">${a.checkins.length} check-ins</span>` : ''}
+        <button onclick="event.stopPropagation(); abrirEdicaoAtleta('${a.id}')" style="background:none;border:1px solid var(--cinza);color:var(--cinza);border-radius:4px;padding:0.15rem 0.5rem;font-size:0.65rem;cursor:pointer;margin-top:0.2rem;">✏️ Editar</button>
+        <button onclick="event.stopPropagation(); deletarAtleta('${a.id}')" style="background:none;border:1px solid rgba(231,76,60,0.4);color:rgba(231,76,60,0.7);border-radius:4px;padding:0.15rem 0.5rem;font-size:0.65rem;cursor:pointer;margin-top:0.2rem;">🗑 Remover</button>
       </div>
     </div>
   `).join('');
@@ -3303,19 +3496,68 @@ function mudarAtleta() {
   document.getElementById('modal-selecionar').classList.remove('hidden');
 }
 
-function salvarAtleta() {
+
+function abrirEdicaoAtleta(id) {
+  const a = state.atletas.find(x => x.id === id);
+  if (!a) return;
+
+  state.editandoAtletaId = id;
+
+  // Preencher todos os campos do modal com os dados existentes
+  document.getElementById('at-nome').value = a.nome || '';
+  document.getElementById('at-apelido').value = a.apelido || '';
+  document.getElementById('at-codigo').value = a.codigoAcesso || '';
+  document.getElementById('at-senha').value = ''; // senha não pré-preenche por segurança
+  document.getElementById('at-nivel').value = a.nivel || 'amador';
+  document.getElementById('at-luta').value = a.dataLuta || '';
+  document.getElementById('at-inicio').value = a.inicioPrep || '';
+  document.getElementById('at-formato').value = a.formato || '';
+  document.getElementById('at-categoria').value = a.categoria || '';
+  document.getElementById('at-dias').value = a.diasSemana || 4;
+  document.getElementById('at-foco').value = a.focoTecnico || '';
+  document.getElementById('at-lesoes').value = a.lesoes || '';
+  if (document.getElementById('at-modalidade')) document.getElementById('at-modalidade').value = a.modalidade || 'boxe';
+  if (document.getElementById('at-objetivo')) document.getElementById('at-objetivo').value = a.objetivo || 'luta';
+  if (document.getElementById('at-objetivo-desc')) document.getElementById('at-objetivo-desc').value = a.objetivoDesc || '';
+
+  // Ferramentas
+  document.querySelectorAll('#ferramentas-selector .ferramenta-tag').forEach(t => {
+    t.classList.toggle('selected', (a.ferramentas || []).includes(t.dataset.f));
+  });
+
+  // Prioridades
+  document.querySelectorAll('#prioridades-selector .ferramenta-tag').forEach(t => {
+    t.classList.toggle('selected', (a.prioridades || []).includes(t.dataset.p));
+  });
+
+  // Atualizar título e botão do modal
+  const titulo = document.querySelector('#modal-atleta h2');
+  if (titulo) titulo.textContent = '✏️ Editar Atleta';
+  const btnSalvar = document.querySelector('#modal-atleta .btn-primary');
+  if (btnSalvar) btnSalvar.textContent = 'SALVAR ALTERAÇÕES';
+
+  // Mostrar aviso sobre senha
+  const senhaLabel = document.querySelector('label[for="at-senha"]');
+  if (senhaLabel) senhaLabel.textContent = '🔑 Nova senha (deixe em branco para manter a atual)';
+
+  abrirModal('modal-atleta');
+  if (typeof toggleCamposModalidade === 'function') toggleCamposModalidade();
+}
+
+async function salvarAtleta() {
   const nome = document.getElementById('at-nome').value.trim();
   if (!nome) { showToast('Nome obrigatório', 'erro'); return; }
 
   const codigo = document.getElementById('at-codigo').value.trim().toLowerCase();
-  const senha = document.getElementById('at-senha').value.trim();
-  if (!codigo || !senha) { showToast('Código e senha de acesso são obrigatórios', 'erro'); return; }
-
-  if (state.atletas.some(a => (a.codigoAcesso||'').toLowerCase() === codigo)) {
-    showToast('Esse código de acesso já está em uso', 'erro'); return;
-  }
+  const senhaPlain = document.getElementById('at-senha').value.trim();
+  if (!codigo || !senhaPlain) { showToast('Código e senha de acesso são obrigatórios', 'erro'); return; }
+  const senha = await hashSenha(senhaPlain);
 
   const ferrSel = [...document.querySelectorAll('#ferramentas-selector .ferramenta-tag.selected')].map(t => t.dataset.f);
+  const prioridades = [...document.querySelectorAll('#prioridades-selector .ferramenta-tag.selected')].map(t => t.dataset.p);
+  const modalidade = document.getElementById('at-modalidade')?.value || 'boxe';
+  const objetivo = document.getElementById('at-objetivo')?.value || 'luta';
+  const objetivoDesc = document.getElementById('at-objetivo-desc')?.value.trim() || '';
 
   const atleta = {
     id: 'atleta_' + Date.now(),
@@ -3323,7 +3565,7 @@ function salvarAtleta() {
     apelido: document.getElementById('at-apelido').value.trim(),
     codigoAcesso: codigo,
     senhaAcesso: senha,
-    dataLuta: document.getElementById('at-luta').value,
+    dataLuta: document.getElementById('at-luta').value || null,
     inicioPrep: document.getElementById('at-inicio').value,
     formato: document.getElementById('at-formato').value.trim(),
     categoria: document.getElementById('at-categoria').value.trim(),
@@ -3332,21 +3574,84 @@ function salvarAtleta() {
     lesoes: document.getElementById('at-lesoes').value.trim(),
     diasSemana: parseInt(document.getElementById('at-dias').value),
     ferramentas: ferrSel,
+    modalidade,
+    objetivo,
+    objetivoDesc,
+    prioridades,
     checkins: [], avaliacoes: [], notas: [], pesos: [], periodizacao: null,
   };
 
-  state.atletas.push(atleta);
-  state.atletaAtual = atleta;
-  salvarEstado();
-  atualizarUI();
-  fecharModal('modal-atleta');
-  showToast('Atleta cadastrado!');
-  showTab('dashboard');
+  if (state.editandoAtletaId) {
+    // MODO EDIÇÃO: atualizar atleta existente
+    const idx = state.atletas.findIndex(x => x.id === state.editandoAtletaId);
+    if (idx >= 0) {
+      const existente = state.atletas[idx];
+      // Preservar histórico e senha (se não alterada)
+      atleta.id = existente.id;
+      atleta.checkins = existente.checkins || [];
+      atleta.avaliacoes = existente.avaliacoes || [];
+      atleta.notas = existente.notas || [];
+      atleta.pesos = existente.pesos || [];
+      atleta.periodizacao = existente.periodizacao || null;
+      atleta.alertas = existente.alertas || [];
+      // Senha: só atualiza se uma nova senha foi digitada
+      if (!senhaPlain) {
+        atleta.senhaAcesso = existente.senhaAcesso; // manter senha atual
+      }
+      // Código de acesso: verificar duplicata apenas se mudou
+      if (atleta.codigoAcesso !== existente.codigoAcesso &&
+          state.atletas.some((a, i) => i !== idx && (a.codigoAcesso||'').toLowerCase() === atleta.codigoAcesso)) {
+        showToast('Esse código de acesso já está em uso', 'erro');
+        return;
+      }
+      state.atletas[idx] = atleta;
+      if (state.atletaAtual?.id === atleta.id) state.atletaAtual = atleta;
+      state.editandoAtletaId = null;
+      // Restaurar título do modal
+      const titulo = document.querySelector('#modal-atleta h2');
+      if (titulo) titulo.textContent = '➕ Novo Atleta';
+      const btnSalvar = document.querySelector('#modal-atleta .btn-primary');
+      if (btnSalvar) btnSalvar.textContent = 'CADASTRAR ATLETA';
+      salvarEstado();
+      atualizarUI();
+      fecharModal('modal-atleta');
+      showToast('✅ Atleta atualizado!');
+    }
+  } else {
+    // MODO CRIAÇÃO: adicionar novo atleta
+    // Verificar duplicata de código
+    if (state.atletas.some(a => (a.codigoAcesso||'').toLowerCase() === codigo)) {
+      showToast('Esse código de acesso já está em uso', 'erro'); return;
+    }
+    state.atletas.push(atleta);
+    state.atletaAtual = atleta;
+    salvarEstado();
+    atualizarUI();
+    fecharModal('modal-atleta');
+    showToast('✅ Atleta cadastrado!');
+    showTab('dashboard');
+  }
 }
 
-// Ferramentas toggle
+// Toggle geral de ferramentas/prioridades
 document.querySelectorAll('.ferramenta-tag').forEach(tag => {
   tag.addEventListener('click', () => tag.classList.toggle('selected'));
+});
+
+function toggleCamposModalidade() {
+  const mod = document.getElementById('at-modalidade')?.value || 'boxe';
+  const temLuta = mod.includes('boxe') || mod === 'personalizado';
+  const campoLuta = document.getElementById('campo-data-luta');
+  const campoFormato = document.getElementById('campo-formato-luta');
+  if (campoLuta) campoLuta.style.display = temLuta ? '' : 'none';
+  if (campoFormato) campoFormato.style.display = temLuta ? '' : 'none';
+}
+
+document.addEventListener('change', function(e) {
+  if (e.target.id === 'at-objetivo') {
+    const desc = document.getElementById('campo-objetivo-desc');
+    if (desc) desc.style.display = e.target.value === 'personalizado' ? '' : 'none';
+  }
 });
 
 // ======= PERIODIZAÇÃO IA =======
@@ -3361,8 +3666,8 @@ async function gerarPeriodizacaoIA() {
   fecharModal('modal-ia');
 
   const inicio = new Date(a.inicioPrep + 'T12:00:00');
-  const luta = new Date(a.dataLuta + 'T12:00:00');
-  const numSemanas = Math.ceil((luta - inicio) / (1000*60*60*24*7));
+  const luta = a.dataLuta ? new Date(a.dataLuta + 'T12:00:00') : new Date(inicio.getTime() + 8*7*24*60*60*1000);
+  const numSemanas = Math.max(4, Math.ceil((luta - inicio) / (1000*60*60*24*7)));
   const obsExtra = document.getElementById('ia-obs-extra').value.trim();
   const nMesos = numSemanas <= 4 ? 2 : numSemanas <= 6 ? 3 : 4;
 
@@ -3377,7 +3682,11 @@ async function gerarPeriodizacaoIA() {
     </div>
   `;
 
-  const systemPrompt = `Você é um preparador físico e fisiologista do exercício especialista em boxe de alto rendimento, com PhD em Ciências do Esporte. Seu conhecimento é baseado nas principais referências científicas da área:
+  const modalidadeAtleta = a.modalidade || 'boxe';
+  const objetivoAtleta = a.objetivo || 'luta';
+  const prioridadesAtleta = (a.prioridades || []).join(', ') || 'não especificadas';
+
+  const systemPrompt = `Você é um preparador físico e fisiologista do exercício especialista em boxe de alto rendimento, com PhD em Ciências do Esporte. Tudo o que você planeja — musculação, condicionamento, saúde mental, força — é desenvolvido a serviço do boxe. Você nunca sai da modalidade: quando o atleta faz musculação, é força para o boxe; quando faz condicionamento, é para aguentar rounds; quando o foco é bem-estar, é para manter o atleta dentro do ritmo do treino e da luta. Seu conhecimento é baseado nas principais referências científicas da área:
 
 REFERÊNCIAS OBRIGATÓRIAS — PERIODIZAÇÃO:
 • Tudor Bompa & Gregory Haff — Periodization Training for Sports (5ª ed., 2009) e Periodization: Theory and Methodology of Training (6ª ed. com Buzzichelli, 2019). Fundamentos de macrociclo, mesociclo, microciclo, supercompensação, carga e recuperação.
@@ -3407,66 +3716,104 @@ INSTRUÇÕES DE RESPOSTA:
 - Use terminologia técnica mas acessível ao treinador
 - Estruture claramente com seções numeradas`;
 
-  const userPrompt = `Crie uma PERIODIZAÇÃO CIENTÍFICA COMPLETA para preparação de luta de boxe:
+  // Adaptar estrutura da periodização conforme modalidade
+  const isBoxe = modalidadeAtleta.includes('boxe');
+  const isMusculacao = modalidadeAtleta.includes('musculacao') || modalidadeAtleta.includes('hipertrofia');
+  const isSaudeMental = objetivoAtleta === 'saude_mental' || objetivoAtleta === 'bem_estar';
 
-═══════════════════════════════
-PERFIL DO ATLETA
-═══════════════════════════════
-Nome: ${a.nome} ${a.apelido ? `(${a.apelido})` : ''}
-Nível: ${a.nivel}
-Formato da luta: ${a.formato || '4 rounds x 3 min + 1 min descanso'}
-Categoria de peso: ${a.categoria || 'A definir'}
-Foco técnico principal: ${a.focoTecnico || 'condicionamento geral'}
-Histórico de lesões: ${a.lesoes || 'sem histórico'}
-Ferramentas disponíveis: ${a.ferramentas?.join(', ') || 'saco, manoplas'}
-Dias de treino/semana: ${a.diasSemana}
-Início da prep: ${formatarData(a.inicioPrep)}
-Data da luta: ${formatarData(a.dataLuta)}
-Duração total: ${numSemanas} semanas
-${obsExtra ? `Observações do treinador: ${obsExtra}` : ''}
+  const tituloPeriodizacao = objetivoAtleta === 'luta'
+    ? 'PERIODIZAÇÃO CIENTÍFICA COMPLETA para preparação de luta de boxe'
+    : isSaudeMental
+    ? 'PROGRAMA DE TREINAMENTO DE BOXE — foco em saúde mental e retomada gradual'
+    : isMusculacao
+    ? 'PROGRAMA DE FORÇA E POTÊNCIA PARA BOXE — musculação específica para o pugilismo'
+    : 'PROGRAMA DE DESENVOLVIMENTO DE BOXE — fase de base e evolução técnico-física';
 
-═══════════════════════════════
-ESTRUTURE A PERIODIZAÇÃO EM:
-═══════════════════════════════
-
-1. ANÁLISE FISIOLÓGICA DO ATLETA E DA LUTA
-   - Demanda metabólica do formato (rounds x duração)
-   - Sistemas energéticos prioritários
-   - Qualidades físicas determinantes para este atleta
-
-2. MACROCICLO — Visão geral das ${numSemanas} semanas
-   - ${nMesos} mesociclos com objetivos fisiológicos claros
-   - Distribuição de volume e intensidade ao longo das semanas (ondulação de carga)
-   - Justificativa científica de cada fase
-
-3. MESOCICLOS DETALHADOS
-   Para cada mesociclo: objetivo fisiológico, sistemas energéticos trabalhados, volume semanal (rounds totais), intensidade predominante (% FC máx ou PSE), ferramentas principais.
-
-4. MICROCICLO COMPLETO — Semana 1 (dia por dia)
-   Para cada sessão: aquecimento específico (exercícios + volume), parte principal (rounds de manoplas/saco/escola/KB com detalhamento), sparring/escola de combate (tipo e contexto), fortalecimento preventivo. Justifique fisiologicamente o foco de cada dia.
-
+  const secao5e6 = isBoxe ? `
 5. PROTOCOLO DE AVALIAÇÕES DURANTE A PREP
    - Quando aplicar cada teste (baseline, meio da prep, pré-taper)
-   - Testes: VO₂máx indireto (burpees 3min), flexões máximas, burpees 3min, agachamentos máximos
+   - Testes: VO₂máx indireto (burpees 3min), flexões máximas, agachamentos máximos
    - Como interpretar os resultados para ajustar o plano
 
 6. ESTRATÉGIA DE FADIGA CONTROLADA PRÉ-SPARRING
-   - Protocolo por semana/mesociclo
-   - Volume de fadiga progressivo e regressivo
+   - Protocolo por semana/mesociclo (somente se houver sparring)
+   - Volume de fadiga progressivo e regressivo` : `
+5. PROTOCOLO DE AVALIAÇÕES
+   - Testes iniciais e de acompanhamento adequados à modalidade
+   - Métricas de progresso: força, condicionamento, composição corporal (conforme objetivo)
+   - Frequência de reavaliação`;
 
+  const taperOuFim = isBoxe && a.dataLuta ? `
 7. ORIENTAÇÕES DE TAPER (últimas ${numSemanas <= 4 ? 1 : 2} semanas)
    - Redução de volume por semana (%)
    - Manutenção de intensidade
    - Sinais de que o taper está funcionando
-   - O que fazer na semana da luta (dia a dia)
+   - O que fazer na semana da luta (dia a dia)` : `
+7. PROGRESSÃO E PICO DE FORMA
+   - Como progredir cargas semana a semana
+   - Estratégia de deload (descarga) a cada 3-4 semanas
+   - Sinais de adaptação positiva`;
+
+  const notaMotivacao = isSaudeMental ? `
+NOTA IMPORTANTE — SAÚDE MENTAL: Este atleta está em acompanhamento psicológico. 
+O programa continua sendo de BOXE, mas deve: (a) ser prazeroso e adaptável ao estado emocional do dia, 
+(b) evitar pressão excessiva por performance e resultados imediatos, (c) priorizar consistência e presença sobre intensidade, 
+(d) usar o próprio boxe como ferramenta terapêutica — os golpes, o ritmo, a técnica têm efeito regulatório comprovado, 
+(e) respeitar os dias de baixa motivação com sessões mais leves mas ainda dentro do treino de boxe (sombra, mobilidade, técnica sem carga). 
+O atleta não para de treinar boxe — ele treina num ritmo e intensidade compatíveis com seu estado mental. 
+Prioridades declaradas: ${prioridadesAtleta}` : '';
+
+  const userPrompt = tituloPeriodizacao + `:
+
+═══════════════════════════════
+PERFIL DO ATLETA
+═══════════════════════════════
+Nome: ${a.nome} ${a.apelido ? '(' + a.apelido + ')' : ''}
+Nível: ${a.nivel}
+Modalidade: ${modalidadeAtleta}
+Objetivo principal: ${objetivoAtleta}${a.objetivoDesc ? ' — ' + a.objetivoDesc : ''}
+Prioridades do treino: ${prioridadesAtleta}
+${isBoxe ? 'Formato da luta: ' + (a.formato || '4 rounds x 3 min + 1 min descanso') : ''}
+Categoria de peso: ${a.categoria || 'A definir'}
+Foco técnico / observações: ${a.focoTecnico || 'condicionamento geral'}
+Histórico de lesões/restrições: ${a.lesoes || 'sem histórico'}
+Ferramentas disponíveis: ${a.ferramentas?.join(', ') || 'apenas peso corporal'}
+Dias de treino/semana: ${a.diasSemana}
+Início do programa: ${formatarData(a.inicioPrep)}
+${a.dataLuta ? 'Data da luta/evento: ' + formatarData(a.dataLuta) : 'Sem data de evento definida — programa de desenvolvimento contínuo'}
+Duração total: ${numSemanas} semanas
+${obsExtra ? 'Observações do treinador: ' + obsExtra : ''}
+${notaMotivacao}
+
+═══════════════════════════════
+ESTRUTURE O PROGRAMA EM:
+═══════════════════════════════
+
+1. ANÁLISE DO ATLETA E DEMANDAS DA MODALIDADE
+   - Demanda física e energética do objetivo
+   - Qualidades físicas prioritárias para ESTE atleta com ESTAS prioridades
+   - Justificativa para a abordagem escolhida
+
+2. MACROCICLO — Visão geral das ${numSemanas} semanas
+   - ${nMesos} mesociclos/fases com objetivos claros
+   - Distribuição de volume e intensidade ao longo das semanas (ondulação de carga)
+   - Justificativa científica de cada fase
+
+3. MESOCICLOS DETALHADOS
+   Para cada mesociclo/fase: objetivo fisiológico, qualidades trabalhadas, volume semanal, intensidade predominante (PSE ou % 1RM ou % FC máx conforme aplicável), ferramentas/exercícios principais.
+
+4. MICROCICLO COMPLETO — Semana 1 (dia por dia)
+   Para cada sessão: aquecimento específico, parte principal com exercícios/rounds/séries/repetições/cargas, trabalho complementar. Justifique o foco fisiológico de cada dia.
+${secao5e6}
+${taperOuFim}
 
 8. INDICADORES DE MONITORAMENTO
    - PSE esperada por fase
-   - Sinais de overtraining a monitorar
-   - Quando modificar o plano`;
+   - Sinais de sobrecarga ou subtreino a monitorar
+   - Quando e como modificar o plano`;
 
   try {
-    const texto = await chamarIA(systemPrompt, userPrompt, 1000);
+    const texto = await chamarIA(systemPrompt, userPrompt, 3500);
     document.getElementById('ia-texto').textContent = texto;
     state._iaTexto = texto;
   } catch(e) {
@@ -3478,8 +3825,8 @@ function aplicarPeriodizacao() {
   const a = state.atletaAtual;
   if (!a) return;
   const inicio = new Date(a.inicioPrep + 'T12:00:00');
-  const luta = new Date(a.dataLuta + 'T12:00:00');
-  const numSemanas = Math.ceil((luta - inicio) / (1000*60*60*24*7));
+  const luta = a.dataLuta ? new Date(a.dataLuta + 'T12:00:00') : new Date(inicio.getTime() + 8*7*24*60*60*1000);
+  const numSemanas = Math.max(4, Math.ceil((luta - inicio) / (1000*60*60*24*7)));
 
   // Gerar estrutura de semanas
   const semanas = [];
@@ -3586,8 +3933,8 @@ async function gerarSessaoComIA() {
   const s = a.periodizacao.semanas[_editSemIdx].sessoes[_editDiaIdx];
   const sem = a.periodizacao.semanas[_editSemIdx];
   const inicio = new Date(a.inicioPrep + 'T12:00:00');
-  const luta = new Date(a.dataLuta + 'T12:00:00');
-  const numSemanas = Math.ceil((luta - inicio) / (1000*60*60*24*7));
+  const luta = a.dataLuta ? new Date(a.dataLuta + 'T12:00:00') : new Date(inicio.getTime() + 8*7*24*60*60*1000);
+  const numSemanas = Math.max(4, Math.ceil((luta - inicio) / (1000*60*60*24*7)));
   const pctPrep = (_editSemIdx / numSemanas * 100).toFixed(0);
 
   const btn = document.getElementById('btn-ia-sessao');
@@ -3783,8 +4130,8 @@ VOCÊ TAMBÉM ANALISA:
 function resumirPeriodizacaoParaIA(a) {
   const p = a.periodizacao;
   const inicio = new Date(a.inicioPrep + 'T12:00:00');
-  const luta = new Date(a.dataLuta + 'T12:00:00');
-  const numSemanas = Math.ceil((luta - inicio) / (1000*60*60*24*7));
+  const luta = a.dataLuta ? new Date(a.dataLuta + 'T12:00:00') : new Date(inicio.getTime() + 8*7*24*60*60*1000);
+  const numSemanas = Math.max(4, Math.ceil((luta - inicio) / (1000*60*60*24*7)));
 
   let texto = `ATLETA: ${a.nome} | Nível: ${a.nivel} | Luta: ${formatarData(a.dataLuta)}\n`;
   texto += `Formato: ${a.formato} | Prep: ${numSemanas} semanas\n`;
@@ -3858,8 +4205,8 @@ async function analisarSemana(semIdx) {
   elTexto.innerHTML = `<div class="ia-loader"><div class="ia-pulse"></div><div class="ia-text">Analisando semana ${sem.numero}...</div></div>`;
 
   const inicio = new Date(a.inicioPrep + 'T12:00:00');
-  const luta = new Date(a.dataLuta + 'T12:00:00');
-  const numSemanas = Math.ceil((luta - inicio) / (1000*60*60*24*7));
+  const luta = a.dataLuta ? new Date(a.dataLuta + 'T12:00:00') : new Date(inicio.getTime() + 8*7*24*60*60*1000);
+  const numSemanas = Math.max(4, Math.ceil((luta - inicio) / (1000*60*60*24*7)));
   const pctPrep = Math.round(semIdx / numSemanas * 100);
 
   let detalhe = `SEMANA ${sem.numero} de ${numSemanas} — ${sem.mesociclo} (${pctPrep}% da prep)\n`;
@@ -4133,6 +4480,16 @@ function salvarEdicaoSessao() {
 }
 
 // ======= CHECK-IN =======
+
+function setHistFiltro(filtro) {
+  state._histFiltro = filtro;
+  state._histPage = 10; // resetar página ao trocar filtro
+  document.querySelectorAll('.hist-filtro').forEach(b => {
+    b.classList.toggle('active', b.dataset.filtro === filtro);
+  });
+  renderCheckin();
+}
+
 function renderCheckin() {
   const souAtleta = state.perfil === 'atleta';
   const hoje = new Date().toLocaleDateString('pt-BR');
@@ -4141,6 +4498,27 @@ function renderCheckin() {
   // Mostrar/esconder campo de observação do treinador
   const obsGroup = document.getElementById('checkin-obs-treinador-group');
   if (obsGroup) obsGroup.classList.toggle('hidden', souAtleta);
+
+  // Mensagem de acolhimento se voltou após falta
+  const a2 = state.atletaAtual;
+  const msgAcolhimento = document.getElementById('msg-acolhimento');
+  if (msgAcolhimento) {
+    const motivoRetorno = verificarRetornoAposAusencia(a2);
+    if (motivoRetorno) {
+      const msgs = {
+        emocional: 'Que bom te ver hoje 💙 Estar aqui já é um passo enorme. Vai no seu ritmo.',
+        cansaco: 'Que bom que você voltou 💪 O descanso faz parte do processo. Vamos com calma hoje.',
+        nao_consegui: 'Fico feliz que você conseguiu vir 🥊 Aparecer é o mais difícil. O resto a gente resolve.',
+        dor: 'Bem-vindo de volta! Me conta como está sentindo antes de começar.',
+        trabalho: 'Tudo bem, a vida cobra às vezes. O que importa é estar aqui agora 👊',
+        outro: 'Que bom te ver de volta! Vamos com foco hoje.',
+      };
+      msgAcolhimento.textContent = msgs[motivoRetorno] || 'Bem-vindo de volta! Que bom te ver por aqui 🥊';
+      msgAcolhimento.parentElement.classList.remove('hidden');
+    } else {
+      msgAcolhimento.parentElement.classList.add('hidden');
+    }
+  }
 
   // PSE
   const pscEl = document.getElementById('pse-scale');
@@ -4167,7 +4545,19 @@ function renderCheckin() {
   if (!a || a.checkins.length === 0) {
     hist.innerHTML = '<div style="font-size:0.8rem;color:var(--cinza);">Nenhum check-in registrado ainda.</div>';
   } else {
-    hist.innerHTML = a.checkins.slice(-10).reverse().map(c => {
+    const _HIST_PAGE = state._histPage || 10;
+    const _filtro = state._histFiltro || 'todos';
+    const _checkinsSorted = [...a.checkins].reverse().filter(c => {
+      if (_filtro === 'todos') return true;
+      if (_filtro === 'falta') return c.tipo === 'falta';
+      if (_filtro === 'treino') return c.tipo !== 'falta' && c.pse;
+      if (_filtro === 'pse_alta') return c.pse >= 8;
+      return true;
+    });
+    const _mostrar = _checkinsSorted.slice(0, _HIST_PAGE);
+    const _temMais = _checkinsSorted.length > _HIST_PAGE;
+
+    hist.innerHTML = _mostrar.map(c => {
       if (c.confirmedByTrainer) {
         // Presença confirmada pelo treinador
         return `
@@ -4179,15 +4569,36 @@ function renderCheckin() {
             ${c.obsTreinador ? `<div style="font-size:0.78rem;color:var(--dourado);margin-top:0.3rem;">📝 ${c.obsTreinador}</div>` : ''}
           </div>`;
       }
+      // Registro de falta
+      if (c.tipo === 'falta') {
+        const motivosMap = {cansaco:'😴 Cansaço/esgotamento',emocional:'💙 Questões emocionais',trabalho:'🏢 Trabalho/compromisso',dor:'🤕 Dor/lesão',nao_consegui:'😔 Não consegui sair de casa',outro:'📝 Outro motivo'};
+        return `
+          <div class="nota-card" style="border-left:3px solid var(--vermelho);opacity:0.85;">
+            <div class="nota-data" style="display:flex;align-items:center;gap:0.5rem;">
+              <span style="color:var(--vermelho);font-size:0.8rem;">❌ Faltou</span>
+              <span style="color:var(--cinza);">· ${formatarData(c.data)}</span>
+            </div>
+            <div style="font-size:0.8rem;color:var(--branco);margin-top:0.3rem;">${motivosMap[c.motivoFalta] || c.motivoFalta}</div>
+            ${c.obs ? `<div style="font-size:0.78rem;color:var(--cinza);margin-top:0.2rem;">${c.obs}</div>` : ''}
+          </div>`;
+      }
       // Check-in normal do atleta
+      const motEmoji = ['','😔','😕','😐','🙂','😄'];
+      const motLabel = ['','Muito mal','Mal','Regular','Bem','Muito bem'];
       return `
         <div class="nota-card">
-          <div class="nota-data">${formatarData(c.data)} · PSE: ${c.pse}/10 · Sono: ${'⭐'.repeat(c.sono||0)} · Disposição: ${'⭐'.repeat(c.disposicao||0)}${c.peso ? ` · ⚖️ ${c.peso}kg` : ''}</div>
+          <div class="nota-data">${formatarData(c.data)} · PSE: ${c.pse}/10 · Sono: ${'⭐'.repeat(c.sono||0)} · Disposição: ${'⭐'.repeat(c.disposicao||0)}${c.peso ? ` · ⚖️ ${c.peso}kg` : ''}${c.motivacao ? ` · ${motEmoji[c.motivacao]} ${motLabel[c.motivacao]}` : ''}</div>
           ${c.dor ? `<div style="font-size:0.78rem;color:var(--amarelo);margin-bottom:0.2rem;">⚠️ ${c.dor}</div>` : ''}
           ${c.obs ? `<div class="nota-texto">${c.obs}</div>` : ''}
           ${(!souAtleta && c.obsTreinador) ? `<div style="font-size:0.78rem;color:var(--dourado);margin-top:0.3rem;border-top:1px solid var(--borda);padding-top:0.3rem;">📝 ${c.obsTreinador}</div>` : ''}
         </div>`;
-    }).join('');
+    }).join('') + (_temMais ? `
+      <div style="text-align:center;margin-top:0.75rem;">
+        <button onclick="state._histPage = (_HIST_PAGE + 10); renderCheckin()" 
+          style="background:none;border:1px solid var(--cinza);color:var(--cinza);border-radius:8px;padding:0.4rem 1.2rem;font-size:0.75rem;cursor:pointer;">
+          Ver mais (${_checkinsSorted.length - _HIST_PAGE} restantes)
+        </button>
+      </div>` : '');
   }
 }
 
@@ -4254,6 +4665,27 @@ function renderFrequencia(a) {
     <div style="font-size:0.78rem;color:${diasDesdeUltimo === 0 ? 'var(--verde)' : diasDesdeUltimo <= 2 ? 'var(--cinza)' : 'var(--vermelho)'};text-align:center;">
       ${diasDesdeUltimo === 0 ? '✅ Check-in feito hoje' : diasDesdeUltimo === 1 ? '⏱ Último check-in ontem' : `⚠️ Sem check-in há ${diasDesdeUltimo} dias`}
     </div>` : ''}
+    ${(() => {
+      const sorted2 = [...a.checkins].sort((x,y) => y.data.localeCompare(x.data));
+      let consecutivas = 0;
+      for (const c of sorted2) {
+        if (c.tipo === 'falta') consecutivas++;
+        else break;
+      }
+      const motivosEmocionais = a.checkins.filter(c => c.tipo === 'falta' && c.motivoFalta === 'emocional').length;
+      let alertaHtml = '';
+      if (consecutivas >= 2) {
+        alertaHtml += '<div style="margin-top:0.75rem;background:rgba(231,76,60,0.12);border:1px solid var(--vermelho);border-radius:8px;padding:0.75rem;font-size:0.8rem;">'
+          + '<div style="color:var(--vermelho);font-weight:600;margin-bottom:0.3rem;">🚨 ' + consecutivas + ' falta(s) consecutiva(s)</div>'
+          + '<div style="color:var(--cinza);">Considere entrar em contato com o atleta.</div></div>';
+      }
+      if (motivosEmocionais >= 2) {
+        alertaHtml += '<div style="margin-top:0.5rem;background:rgba(100,149,237,0.1);border:1px solid #6495ED;border-radius:8px;padding:0.75rem;font-size:0.8rem;">'
+          + '<div style="color:#6495ED;font-weight:600;margin-bottom:0.3rem;">💙 ' + motivosEmocionais + ' ausência(s) por questões emocionais</div>'
+          + '<div style="color:var(--cinza);">Observe o estado emocional do atleta nos treinos.</div></div>';
+      }
+      return alertaHtml;
+    })()}
   `;
 }
 
@@ -4263,6 +4695,104 @@ function selecionarPSE(n) {
   document.querySelectorAll('.pse-btn').forEach(b => {
     b.classList.toggle('selected', parseInt(b.dataset.val) === n);
   });
+}
+
+// ===== MOTIVAÇÃO =====
+function selecionarMotivacao(n) {
+  state.motivacaoSelecionada = n;
+  document.querySelectorAll('[data-mot]').forEach(b => {
+    b.classList.toggle('selected', parseInt(b.dataset.mot) === n);
+  });
+}
+
+// ===== FALTA / AUSÊNCIA =====
+let _mostrandoFalta = false;
+function toggleFalta() {
+  _mostrandoFalta = !_mostrandoFalta;
+  const grp = document.getElementById('checkin-falta-group');
+  const btn = document.getElementById('btn-nao-treinei');
+  if (_mostrandoFalta) {
+    grp.classList.remove('hidden');
+    btn.textContent = '✅ VOLTAR PRO CHECK-IN';
+    btn.style.borderColor = 'var(--verde)';
+    btn.style.color = 'var(--verde)';
+  } else {
+    grp.classList.add('hidden');
+    btn.textContent = '❌ NÃO TREINEI HOJE';
+    btn.style.borderColor = 'var(--vermelho)';
+    btn.style.color = 'var(--vermelho)';
+  }
+}
+
+async function salvarFalta() {
+  const a = state.atletaAtual;
+  if (!a) { showToast('Selecione um atleta', 'erro'); return; }
+
+  const motivoEl = document.querySelector('input[name="motivo-falta"]:checked');
+  if (!motivoEl) { showToast('Selecione o motivo da falta', 'erro'); return; }
+
+  const hoje = new Date().toISOString().split('T')[0];
+  const obs = document.getElementById('falta-obs').value.trim();
+
+  const registro = {
+    data: hoje,
+    tipo: 'falta',
+    motivoFalta: motivoEl.value,
+    obs: obs,
+  };
+
+  if (!a.checkins) a.checkins = [];
+  a.checkins.push(registro);
+  await salvarEstado();
+
+  // Verificar alerta de faltas consecutivas (pro treinador)
+  verificarAlertaFaltas(a);
+
+  // Fechar painel falta
+  toggleFalta();
+  document.getElementById('falta-obs').value = '';
+  document.querySelectorAll('input[name="motivo-falta"]').forEach(r => r.checked = false);
+
+  showToast('Ausência registrada. Obrigado por avisar 💙');
+  renderCheckin();
+}
+
+function verificarAlertaFaltas(a) {
+  // Conta faltas consecutivas (ignorando finais de semana e descansos)
+  if (!a.checkins?.length) return;
+  const recentes = [...a.checkins].sort((x,y) => y.data.localeCompare(x.data));
+  let consecutivas = 0;
+  for (const c of recentes) {
+    if (c.tipo === 'falta') consecutivas++;
+    else break;
+  }
+  if (consecutivas >= 2) {
+    // Salvar alerta no atleta
+    if (!a.alertas) a.alertas = [];
+    const jaTemAlerta = a.alertas.some(al => al.tipo === 'faltas_consecutivas' && al.data === recentes[0].data);
+    if (!jaTemAlerta) {
+      a.alertas.push({
+        tipo: 'faltas_consecutivas',
+        data: recentes[0].data,
+        quantidade: consecutivas,
+        lido: false,
+      });
+    }
+  }
+}
+
+// Mostrar mensagem de acolhimento quando atleta volta após falta
+function verificarRetornoAposAusencia(a) {
+  if (!a?.checkins?.length) return null;
+  const sorted = [...a.checkins].sort((x,y) => y.data.localeCompare(x.data));
+  // Último registro é falta?
+  if (sorted.length < 2) return null;
+  // O penúltimo era falta?
+  const penultimo = sorted[1];
+  if (penultimo?.tipo === 'falta') {
+    return penultimo.motivoFalta;
+  }
+  return null;
 }
 
 function renderStars(containerId, campo) {
@@ -4359,6 +4889,7 @@ function salvarCheckin() {
     dor: document.getElementById('checkin-dor').value.trim(),
     obs: document.getElementById('checkin-obs').value.trim(),
     obsTreinador: (obsTreinadorEl && state.perfil === 'treinador') ? obsTreinadorEl.value.trim() : '',
+    motivacao: state.motivacaoSelecionada || null,
     rounds: 10,
   };
 
@@ -4377,6 +4908,8 @@ function salvarCheckin() {
   state.pseSelecionado = null;
   state.sonoRating = 0;
   state.disposicaoRating = 0;
+  state.motivacaoSelecionada = null;
+  document.querySelectorAll('[data-mot]').forEach(b => b.classList.remove('selected'));
   document.getElementById('checkin-peso').value = '';
   document.getElementById('checkin-dor').value = '';
   document.getElementById('checkin-obs').value = '';
@@ -4839,8 +5372,8 @@ async function corrigirSessaoComIA(semIdx, diaIdx) {
   const s = a.periodizacao.semanas[semIdx].sessoes[diaIdx];
   const sem = a.periodizacao.semanas[semIdx];
   const inicio = new Date(a.inicioPrep + 'T12:00:00');
-  const luta = new Date(a.dataLuta + 'T12:00:00');
-  const numSemanas = Math.ceil((luta - inicio) / (1000*60*60*24*7));
+  const luta = a.dataLuta ? new Date(a.dataLuta + 'T12:00:00') : new Date(inicio.getTime() + 8*7*24*60*60*1000);
+  const numSemanas = Math.max(4, Math.ceil((luta - inicio) / (1000*60*60*24*7)));
   const pctPrep = Math.round(semIdx / numSemanas * 100);
 
   // Abrir modal de edição primeiro
@@ -4916,8 +5449,8 @@ async function gerarProtocoloTestes() {
   if (!a.periodizacao) { showToast('Gere a periodização primeiro', 'erro'); return; }
 
   const inicio = new Date(a.inicioPrep + 'T12:00:00');
-  const luta = new Date(a.dataLuta + 'T12:00:00');
-  const numSemanas = Math.ceil((luta - inicio) / (1000*60*60*24*7));
+  const luta = a.dataLuta ? new Date(a.dataLuta + 'T12:00:00') : new Date(inicio.getTime() + 8*7*24*60*60*1000);
+  const numSemanas = Math.max(4, Math.ceil((luta - inicio) / (1000*60*60*24*7)));
 
   showToast('⏳ Gerando protocolo...');
 
@@ -5149,6 +5682,88 @@ function recusarPropostaIA() {
 }
 
 // Enter no chat envia (Shift+Enter = nova linha)
+
+// ===== PWA INSTALL =====
+let _pwaDeferred = null;
+const _pwaIsIOS = /iphone|ipad|ipod/i.test(navigator.userAgent) && !window.MSStream;
+const _pwaIsStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
+
+window.addEventListener('beforeinstallprompt', function(e) {
+  e.preventDefault();
+  _pwaDeferred = e;
+  if (!_pwaIsStandalone && !localStorage.getItem('pwa_dismissed')) {
+    setTimeout(function() {
+      document.getElementById('pwa-install-banner').classList.add('visible');
+      var btn = document.getElementById('btn-pwa-header');
+      if (btn) btn.style.display = 'inline-block';
+    }, 3000);
+  }
+});
+
+if (_pwaIsIOS && !_pwaIsStandalone && !localStorage.getItem('pwa_dismissed')) {
+  setTimeout(function() {
+    document.getElementById('pwa-install-banner').classList.add('visible');
+    var btn = document.getElementById('btn-pwa-header');
+    if (btn) btn.style.display = 'inline-block';
+  }, 3000);
+}
+
+function pwaInstalar() {
+  document.getElementById('pwa-install-banner').classList.remove('visible');
+  if (_pwaIsIOS) {
+    document.getElementById('pwa-ios-modal').classList.add('open');
+  } else if (_pwaDeferred) {
+    _pwaDeferred.prompt();
+    _pwaDeferred.userChoice.then(function(result) {
+      if (result.outcome === 'accepted') {
+        localStorage.setItem('pwa_dismissed', '1');
+        var btn = document.getElementById('btn-pwa-header');
+        if (btn) btn.style.display = 'none';
+      }
+      _pwaDeferred = null;
+    });
+  } else {
+    alert('Para instalar o PADOTY BOXING como app:\n\n📱 Android (Chrome): Menu ⋮ → "Instalar app" ou "Adicionar à tela inicial"\n💻 Desktop (Chrome/Edge): Ícone ⊕ na barra de endereço\n🍎 iPhone/iPad (Safari): Toque em Compartilhar ↑ → "Adicionar à Tela de Início"\n\nSe não aparecer a opção, abra o site no Chrome ou Safari.');
+  }
+}
+
+function pwaDismiss() {
+  document.getElementById('pwa-install-banner').classList.remove('visible');
+  localStorage.setItem('pwa_dismissed', '1');
+}
+// ===== FIM PWA INSTALL =====
+
+
+// ===== SERVICE WORKER (cache básico para PWA real) =====
+if ('serviceWorker' in navigator) {
+  const swCode = `
+    const CACHE = 'padoty-boxing-v1';
+    self.addEventListener('install', e => {
+      self.skipWaiting();
+    });
+    self.addEventListener('activate', e => {
+      e.waitUntil(clients.claim());
+    });
+    self.addEventListener('fetch', e => {
+      // Estratégia: network first, fallback cache (para requests GET)
+      if (e.request.method !== 'GET') return;
+      e.respondWith(
+        fetch(e.request)
+          .then(r => {
+            const clone = r.clone();
+            caches.open(CACHE).then(c => c.put(e.request, clone));
+            return r;
+          })
+          .catch(() => caches.match(e.request))
+      );
+    });
+  `;
+  const swBlob = new Blob([swCode], { type: 'application/javascript' });
+  const swUrl = URL.createObjectURL(swBlob);
+  navigator.serviceWorker.register(swUrl).catch(() => {});
+}
+// ===== FIM SERVICE WORKER =====
+
 document.addEventListener('DOMContentLoaded', () => {
   const chatInput = document.getElementById('chat-ia-input');
   if (chatInput) {
@@ -5404,7 +6019,7 @@ Rede de apoio: ${p.suporte || '—'}
 Escreva a reflexão para ele.`;
 
   try {
-    const texto = await chamarIA(systemPrompt, userPrompt, 1000);
+    const texto = await chamarIA(systemPrompt, userPrompt, 3500);
     a.proposito.devolutiva = texto;
     salvarEstado();
     renderProposito();
@@ -5448,7 +6063,7 @@ Autoimagem: ${p.autoimagem || '—'}
 Rede de apoio: ${p.suporte || '—'}`;
 
   try {
-    const texto = await chamarIA(systemPrompt, userPrompt, 1000);
+    const texto = await chamarIA(systemPrompt, userPrompt, 3500);
     a.proposito.analiseTreinador = texto;
     salvarEstado();
     renderProposito();
@@ -5895,7 +6510,7 @@ Controle sob pressão: ${dadosTreinador.controle}
 Gere o perfil tático.`;
 
   try {
-    const texto = await chamarIA(systemPrompt, userPrompt, 1000);
+    const texto = await chamarIA(systemPrompt, userPrompt, 3500);
     a.perfilComportamental.resultado = texto;
     a.perfilComportamental.dadosAtleta = dadosAtleta;
     a.perfilComportamental.dadosTreinador = dadosTreinador;
@@ -6134,6 +6749,414 @@ function gerarRelatorioAtleta() {
   showToast('PDF gerado!');
 }
 
+// ======= COMPARATIVO DE ATLETAS =======
+function renderComparativo() {
+  const lista = document.getElementById('comparativo-lista');
+  const ranking = document.getElementById('comparativo-ranking');
+  if (!lista) return;
+
+  const atletas = state.atletas;
+  if (!atletas || atletas.length === 0) {
+    lista.innerHTML = '<div style="font-size:0.8rem;color:var(--cinza);text-align:center;padding:2rem;">Nenhum atleta cadastrado ainda.</div>';
+    if (ranking) ranking.innerHTML = '';
+    return;
+  }
+
+  // Calcula métricas para cada atleta
+  const dados = atletas.map(a => {
+    const checkins = a.checkins || [];
+    const treinos = checkins.filter(c => c.tipo !== 'falta' && c.pse);
+    const faltas = checkins.filter(c => c.tipo === 'falta');
+    const pses = treinos.map(c => c.pse).filter(p => p > 0);
+    const pseMedia = pses.length ? (pses.reduce((s,p)=>s+p,0)/pses.length).toFixed(1) : null;
+    const ultPSE = pses.length ? pses[pses.length-1] : null;
+    const pesoAtual = (a.pesos||[]).length ? a.pesos[a.pesos.length-1].valor : null;
+    const pesoInicial = (a.pesos||[]).length ? a.pesos[0].valor : null;
+    const difPeso = (pesoAtual && pesoInicial) ? (pesoAtual - pesoInicial).toFixed(1) : null;
+
+    // Dias até a luta
+    let diasLuta = null;
+    let lutaPassada = false;
+    if (a.dataLuta) {
+      const hoje = new Date();
+      const luta = new Date(a.dataLuta + 'T12:00:00');
+      diasLuta = Math.ceil((luta - hoje) / (1000*60*60*24));
+      lutaPassada = diasLuta < 0;
+    }
+
+    // Últimos 7 dias de treino (presença recente)
+    const hoje7 = new Date();
+    const seteDias = new Date(hoje7.getTime() - 7*24*60*60*1000);
+    const treinos7 = treinos.filter(c => c.data && new Date(c.data) >= seteDias).length;
+    const faltas7 = faltas.filter(c => c.data && new Date(c.data) >= seteDias).length;
+
+    // Score de atenção (quanto mais alto, mais precisa de atenção)
+    let score = 0;
+    if (ultPSE >= 8) score += 2;
+    if (faltas7 >= 2) score += 3;
+    if (diasLuta !== null && diasLuta <= 14 && !lutaPassada) score += 2;
+    if (treinos7 === 0 && !lutaPassada) score += 1;
+
+    return { a, checkins, treinos, faltas, pseMedia, ultPSE, pesoAtual, difPeso, diasLuta, lutaPassada, treinos7, faltas7, score };
+  });
+
+  // Ordena por score de atenção (mais atenção primeiro), depois por luta mais próxima
+  dados.sort((a, b) => {
+    if (b.score !== a.score) return b.score - a.score;
+    const dA = a.diasLuta !== null ? a.diasLuta : 9999;
+    const dB = b.diasLuta !== null ? b.diasLuta : 9999;
+    return dA - dB;
+  });
+
+  // Render dos cards
+  lista.innerHTML = dados.map(d => {
+    const { a, treinos, faltas, pseMedia, ultPSE, pesoAtual, difPeso, diasLuta, lutaPassada, treinos7, faltas7, score } = d;
+
+    const corLuta = lutaPassada ? '#666' : diasLuta <= 7 ? '#C8102E' : diasLuta <= 21 ? '#C9A84C' : 'var(--verde)';
+    const txtLuta = lutaPassada ? 'Luta realizada' : diasLuta !== null ? diasLuta + ' dias para a luta' : 'Sem data de luta';
+    const alertas = score >= 3 ? '🚨' : score >= 2 ? '⚠️' : score >= 1 ? '💡' : '✅';
+
+    const pseBar = pseMedia ? Math.round((parseFloat(pseMedia)/10)*100) : 0;
+    const corPSE = pseMedia >= 8 ? '#C8102E' : pseMedia >= 6 ? '#C9A84C' : '#638532';
+
+    const presencaTotal = treinos.length + faltas.length;
+    const pctPresenca = presencaTotal > 0 ? Math.round((treinos.length / presencaTotal) * 100) : null;
+
+    return `
+      <div class="card" style="margin-bottom:0.75rem;${score >= 3 ? 'border-color:#C8102E;' : score >= 2 ? 'border-color:#C9A84C;' : ''}" onclick="selecionarAtleta('${a.id}');showTab('dashboard');" style="cursor:pointer;">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:0.5rem;">
+          <div>
+            <div style="font-family:'Bebas Neue',sans-serif;font-size:1.15rem;letter-spacing:0.05em;">${alertas} ${a.apelido || a.nome}</div>
+            <div style="font-size:0.72rem;color:var(--cinza);">${a.nome !== (a.apelido||a.nome) ? a.nome + ' · ' : ''}${a.categoria||'sem categoria'}</div>
+          </div>
+          <div style="text-align:right;">
+            <div style="font-size:0.72rem;color:${corLuta};font-weight:600;">${txtLuta}</div>
+            ${pesoAtual ? '<div style="font-size:0.7rem;color:var(--cinza);">⚖️ ' + pesoAtual + 'kg' + (difPeso ? ' (' + (parseFloat(difPeso)>0?'+':'') + difPeso + 'kg)' : '') + '</div>' : ''}
+          </div>
+        </div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:0.5rem;margin-bottom:0.6rem;">
+          <div style="background:var(--grafite);border-radius:6px;padding:0.4rem;text-align:center;">
+            <div style="font-size:1rem;font-weight:700;color:var(--vermelho);">${treinos.length}</div>
+            <div style="font-size:0.62rem;color:var(--cinza);">Treinos</div>
+          </div>
+          <div style="background:var(--grafite);border-radius:6px;padding:0.4rem;text-align:center;">
+            <div style="font-size:1rem;font-weight:700;color:${faltas.length > 3 ? '#C8102E' : 'var(--cinza)'};">${faltas.length}</div>
+            <div style="font-size:0.62rem;color:var(--cinza);">Faltas</div>
+          </div>
+          <div style="background:var(--grafite);border-radius:6px;padding:0.4rem;text-align:center;">
+            <div style="font-size:1rem;font-weight:700;color:var(--dourado);">${pctPresenca !== null ? pctPresenca + '%' : '—'}</div>
+            <div style="font-size:0.62rem;color:var(--cinza);">Presença</div>
+          </div>
+        </div>
+
+        ${pseMedia ? `
+        <div style="margin-bottom:0.4rem;">
+          <div style="display:flex;justify-content:space-between;font-size:0.7rem;color:var(--cinza);margin-bottom:0.2rem;">
+            <span>PSE Média</span><span style="color:${corPSE};font-weight:600;">${pseMedia}/10</span>
+          </div>
+          <div style="background:var(--grafite);border-radius:4px;height:5px;">
+            <div style="background:${corPSE};width:${pseBar}%;height:5px;border-radius:4px;transition:width 0.4s;"></div>
+          </div>
+        </div>` : ''}
+
+        <div style="display:flex;gap:0.4rem;margin-top:0.4rem;">
+          <div style="font-size:0.68rem;color:var(--cinza);">Últimos 7 dias:</div>
+          <div style="font-size:0.68rem;color:var(--verde);">✅ ${treinos7} treinos</div>
+          ${faltas7 > 0 ? '<div style="font-size:0.68rem;color:#C8102E;">❌ ' + faltas7 + ' falta(s)</div>' : ''}
+        </div>
+
+        <div style="margin-top:0.5rem;font-size:0.68rem;color:var(--cinza);text-align:right;">Toque para abrir o perfil →</div>
+      </div>
+    `;
+  }).join('');
+
+  // Ranking / destaques
+  const comTreinos = dados.filter(d => d.treinos.length > 0);
+  if (comTreinos.length >= 2) {
+    const melhorPresenca = [...comTreinos].sort((a,b) => {
+      const pA = a.treinos.length / Math.max(1, a.treinos.length+a.faltas.length);
+      const pB = b.treinos.length / Math.max(1, b.treinos.length+b.faltas.length);
+      return pB - pA;
+    })[0];
+
+    const maiorPSE = comTreinos.filter(d=>d.pseMedia).sort((a,b) => parseFloat(b.pseMedia)-parseFloat(a.pseMedia))[0];
+    const menorPSE = comTreinos.filter(d=>d.pseMedia).sort((a,b) => parseFloat(a.pseMedia)-parseFloat(b.pseMedia))[0];
+
+    if (ranking) ranking.innerHTML = `
+      <div class="card" style="border-color:var(--dourado);">
+        <div class="card-title">🏆 Destaques do <span class="accent">Plantel</span></div>
+        <div style="display:flex;flex-direction:column;gap:0.5rem;font-size:0.8rem;">
+          <div style="display:flex;justify-content:space-between;padding:0.4rem 0;border-bottom:1px solid var(--borda);">
+            <span>🥇 Maior presença</span>
+            <span style="color:var(--dourado);font-weight:600;">${melhorPresenca.a.apelido||melhorPresenca.a.nome}</span>
+          </div>
+          ${maiorPSE ? '<div style="display:flex;justify-content:space-between;padding:0.4rem 0;border-bottom:1px solid var(--borda);"><span>🔥 Maior esforço (PSE)</span><span style="color:#C8102E;font-weight:600;">' + (maiorPSE.a.apelido||maiorPSE.a.nome) + ' — ' + maiorPSE.pseMedia + '</span></div>' : ''}
+          ${menorPSE && menorPSE !== maiorPSE ? '<div style="display:flex;justify-content:space-between;padding:0.4rem 0;"><span>😎 Menor fadiga (PSE)</span><span style="color:var(--verde);font-weight:600;">' + (menorPSE.a.apelido||menorPSE.a.nome) + ' — ' + menorPSE.pseMedia + '</span></div>' : ''}
+        </div>
+      </div>
+    `;
+  } else if (ranking) {
+    ranking.innerHTML = '';
+  }
+}
+
+// ======= RELATÓRIO EMPRESÁRIO / PATROCINADOR =======
+function gerarRelatorioEmpresario() {
+  const a = state.atletaAtual;
+  if (!a) { showToast('Selecione um atleta', 'erro'); return; }
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF();
+
+  // ---- CABEÇALHO PREMIUM ----
+  doc.setFillColor(44, 47, 72); // azul-marinho PADOTY
+  doc.rect(0, 0, 210, 38, 'F');
+  doc.setTextColor(201, 168, 76); // dourado
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(20);
+  doc.text('PADOTY', 14, 14);
+  doc.setFontSize(9);
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(200, 200, 200);
+  doc.text('BOXING · PREPARAÇÃO FÍSICA ESPECIALIZADA', 14, 21);
+  doc.setFontSize(8);
+  doc.text('Fábio Padote  |  CREF 142588-G/SP  |  padoty.com.br', 14, 28);
+
+  doc.setFontSize(14);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(255, 255, 255);
+  doc.text('RELATÓRIO DE PREPARAÇÃO', 210-14, 14, { align: 'right' });
+  doc.setFontSize(9);
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(200, 200, 200);
+  doc.text('EMPRESÁRIO / PATROCINADOR', 210-14, 21, { align: 'right' });
+  const dataHoje = new Date().toLocaleDateString('pt-BR');
+  doc.text('Emitido em: ' + dataHoje, 210-14, 28, { align: 'right' });
+
+  doc.setTextColor(30, 30, 30);
+  let y = 48;
+
+  function secao(titulo) {
+    if (y > 260) { doc.addPage(); y = 20; }
+    doc.setFillColor(44, 47, 72);
+    doc.rect(14, y-4, 182, 8, 'F');
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(9);
+    doc.setTextColor(201, 168, 76);
+    doc.text(titulo.toUpperCase(), 17, y+1.5);
+    doc.setTextColor(30, 30, 30);
+    y += 10;
+  }
+
+  function linha(label, valor, opts) {
+    if (y > 270) { doc.addPage(); y = 20; }
+    const negrito = opts && opts.bold;
+    doc.setFont('helvetica', negrito ? 'bold' : 'normal');
+    doc.setFontSize(opts && opts.size ? opts.size : 10);
+    doc.setTextColor.apply(doc, opts && opts.cor ? opts.cor : [30,30,30]);
+    if (valor !== undefined && valor !== null) {
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(9);
+      doc.setTextColor(80,80,80);
+      doc.text(label + ':', 17, y);
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(10);
+      doc.setTextColor(30,30,30);
+      doc.text(String(valor), 65, y);
+    } else {
+      doc.setFont('helvetica', negrito ? 'bold' : 'normal');
+      doc.setFontSize(opts && opts.size ? opts.size : 10);
+      doc.setTextColor.apply(doc, opts && opts.cor ? opts.cor : [30,30,30]);
+      doc.text(label, 17, y);
+    }
+    y += opts && opts.gap ? opts.gap : 6.5;
+  }
+
+  function bloco(texto) {
+    if (!texto) return;
+    const linhas = doc.splitTextToSize(texto, 176);
+    linhas.forEach(l => {
+      if (y > 270) { doc.addPage(); y = 20; }
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(9.5);
+      doc.setTextColor(60,60,60);
+      doc.text(l, 17, y);
+      y += 5.5;
+    });
+    y += 3;
+  }
+
+  // ---- IDENTIFICAÇÃO DO ATLETA ----
+  const c = a.cartel || {};
+  const nomeCompleto = c.nomeCompleto || a.nome;
+  const apelido = c.apelido || a.apelido || '';
+
+  secao('Identificação do Atleta');
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(16);
+  doc.setTextColor(44, 47, 72);
+  doc.text(nomeCompleto + (apelido ? ' "' + apelido + '"' : ''), 17, y);
+  y += 8;
+
+  if (c.nascimento) linha('Data de Nasc.', formatarData(c.nascimento) + (calcularIdade(c.nascimento) ? ' (' + calcularIdade(c.nascimento) + ' anos)' : ''));
+  if (c.categoria || a.categoria) linha('Categoria', c.categoria || a.categoria);
+  if (c.cidadeAcademia) linha('Academia', c.cidadeAcademia);
+  if (c.estilo) linha('Estilo', c.estilo === 'canhoto' ? 'Canhoto (Southpaw)' : 'Ortodoxo');
+  if (c.experiencia) linha('Experiência', c.experiencia);
+  y += 3;
+
+  // ---- CARTEL ----
+  if (c.proV != null || c.amV != null) {
+    secao('Cartel');
+    linha('Profissional', (c.proV??0)+'V - '+(c.proD??0)+'D - '+(c.proE??0)+'E  |  Nocautes: '+(c.proKO??0));
+    linha('Amador', (c.amV??0)+'V - '+(c.amD??0)+'D - '+(c.amE??0)+'E');
+    if (c.titulos) linha('Títulos', c.titulos);
+    y += 3;
+  }
+
+  // ---- LUTA ALVO ----
+  secao('Luta Alvo');
+  if (a.dataLuta) {
+    const hoje = new Date();
+    const luta = new Date(a.dataLuta + 'T12:00:00');
+    const dias = Math.ceil((luta - hoje)/(1000*60*60*24));
+    linha('Data', formatarData(a.dataLuta) + (dias > 0 ? '  (' + dias + ' dias restantes)' : '  (realizada)'));
+  }
+  if (a.formato) linha('Formato', a.formato);
+  if (a.categoria) linha('Categoria', a.categoria);
+  y += 3;
+
+  // ---- NARRATIVA DO ATLETA ----
+  const prop = a.proposito || {};
+  if (prop.sonho || prop.metaLuta || prop.motivacao) {
+    secao('Sobre o Atleta');
+    if (prop.sonho) {
+      doc.setFont('helvetica', 'bold'); doc.setFontSize(9); doc.setTextColor(80,80,80);
+      doc.text('Objetivo de carreira:', 17, y); y += 5.5;
+      bloco(prop.sonho);
+    }
+    if (prop.metaLuta) {
+      doc.setFont('helvetica', 'bold'); doc.setFontSize(9); doc.setTextColor(80,80,80);
+      doc.text('O que esta luta representa:', 17, y); y += 5.5;
+      bloco(prop.metaLuta);
+    }
+    if (prop.motivacao) {
+      doc.setFont('helvetica', 'bold'); doc.setFontSize(9); doc.setTextColor(80,80,80);
+      doc.text('Motivação:', 17, y); y += 5.5;
+      bloco(prop.motivacao);
+    }
+  }
+
+  // ---- RESUMO DA PREPARAÇÃO ----
+  const st = _calcularEstatisticas(a);
+  secao('Resumo da Preparação');
+  if (a.inicioPrep) linha('Início da prep', formatarData(a.inicioPrep));
+  if (a.dataLuta) linha('Término previsto', formatarData(a.dataLuta));
+  linha('Sessões realizadas', st.totalSessoes + ' treinos');
+  linha('Horas de prep estimadas', st.horasEstimadas + 'h');
+  linha('Conformidade com o plano', st.adesao + '%');
+  linha('PSE média', st.pseMedia + '/10  (Percepção de Esforço)');
+
+  // Presença gráfica (barras simples)
+  const _allCheckins = a.checkins || [];
+  const _treinosFeitos = _allCheckins.filter(c => c.tipo !== 'falta' && c.pse).length;
+  const _faltasReg = _allCheckins.filter(c => c.tipo === 'falta').length;
+  const _totalReg = _treinosFeitos + _faltasReg;
+  if (_totalReg > 0) {
+    y += 2;
+    const pctP = _treinosFeitos / _totalReg;
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(8.5); doc.setTextColor(80,80,80);
+    doc.text('Presença:', 17, y);
+    doc.setFont('helvetica', 'normal'); doc.setFontSize(8.5); doc.setTextColor(30,30,30);
+    doc.text(Math.round(pctP*100) + '%  (' + _treinosFeitos + ' treinos / ' + _faltasReg + ' faltas)', 55, y);
+    y += 5;
+    doc.setFillColor(220,220,220);
+    doc.rect(17, y, 120, 5, 'F');
+    doc.setFillColor(99, 133, 50); // verde PADOTY
+    doc.rect(17, y, Math.round(120*pctP), 5, 'F');
+    y += 10;
+  }
+
+  // ---- EVOLUÇÃO FÍSICA ----
+  if (a.avaliacoes && a.avaliacoes.length >= 1) {
+    secao('Evolução Física');
+    if (a.avaliacoes.length >= 2) {
+      const primeira = a.avaliacoes[0], ultima = a.avaliacoes[a.avaliacoes.length-1];
+      linha('Avaliação inicial', formatarData(primeira.data));
+      linha('Avaliação mais recente', formatarData(ultima.data));
+      Object.keys(primeira.resultados||{}).forEach(key => {
+        const t = TESTES_CONFIG[key];
+        if (!t || !ultima.resultados?.[key]) return;
+        const campo = t.campoClass;
+        const valIni = primeira.resultados[key]?.[campo];
+        const valFim = ultima.resultados[key]?.[campo];
+        if (valIni && valFim && valIni !== valFim) {
+          linha(t.nome.replace(/^\S+\s/,''), valIni + '  →  ' + valFim);
+        }
+      });
+    } else {
+      linha('Avaliação registrada', formatarData(a.avaliacoes[0].data));
+    }
+    y += 3;
+  }
+
+  // Evolução de peso
+  if (a.pesos && a.pesos.length >= 2) {
+    const pesoIni = a.pesos[0], pesoFim = a.pesos[a.pesos.length-1];
+    const difP = (parseFloat(pesoFim.valor) - parseFloat(pesoIni.valor)).toFixed(1);
+    linha('Peso inicial', pesoIni.valor + ' kg  (' + formatarData(pesoIni.data) + ')');
+    linha('Peso atual', pesoFim.valor + ' kg  (' + formatarData(pesoFim.data) + ')  |  Variação: ' + (parseFloat(difP)>0?'+':'') + difP + ' kg');
+    y += 3;
+  }
+
+  // ---- PERIODIZAÇÃO ----
+  if (a.periodizacao && a.periodizacao.mesociclos && a.periodizacao.mesociclos.length) {
+    secao('Estrutura de Periodização');
+    a.periodizacao.mesociclos.forEach(m => {
+      doc.setFont('helvetica', 'bold'); doc.setFontSize(9); doc.setTextColor(44,47,72);
+      doc.text(m.nome + '  (Semanas ' + m.semanas + ')', 17, y);
+      y += 5;
+      doc.setFont('helvetica', 'normal'); doc.setFontSize(8.5); doc.setTextColor(60,60,60);
+      const linhas2 = doc.splitTextToSize(m.objetivo||'', 176);
+      linhas2.forEach(l => { if (y>270){doc.addPage();y=20;} doc.text(l, 17, y); y+=4.5; });
+      y += 2;
+    });
+    y += 3;
+  }
+
+  // ---- DECLARAÇÃO ----
+  if (y > 220) { doc.addPage(); y = 20; }
+  secao('Declaração do Profissional Responsável');
+  const decl = 'Declaro que o atleta ' + nomeCompleto + (apelido?' "'+apelido+'"':'') + ' está sob minha supervisão profissional como preparador físico especializado em boxe, cumprindo um programa de periodização científica individualizado, devidamente planejado e monitorado conforme os dados apresentados neste relatório.';
+  bloco(decl);
+
+  y += 5;
+  doc.setDrawColor(44,47,72);
+  doc.line(17, y, 100, y);
+  y += 5;
+  doc.setFont('helvetica', 'bold'); doc.setFontSize(9); doc.setTextColor(44,47,72);
+  doc.text('Fábio Padote  —  CREF 142588-G/SP', 17, y);
+  y += 5;
+  doc.setFont('helvetica', 'normal'); doc.setFontSize(8.5); doc.setTextColor(100,100,100);
+  doc.text('PADOTY Saúde e Movimento  |  padoty.com.br  |  Rio Claro, SP', 17, y);
+  y += 4;
+  doc.text('Emitido em: ' + new Date().toLocaleDateString('pt-BR') + '  —  Documento gerado via PADOTY BOXING App', 17, y);
+
+  // ---- RODAPÉ ----
+  const pageCount = doc.internal.getNumberOfPages();
+  for (let i = 1; i <= pageCount; i++) {
+    doc.setPage(i);
+    doc.setFillColor(44,47,72);
+    doc.rect(0, 288, 210, 10, 'F');
+    doc.setFont('helvetica', 'normal'); doc.setFontSize(7); doc.setTextColor(180,180,180);
+    doc.text('PADOTY BOXING  |  Documento confidencial gerado em ' + dataHoje, 14, 294);
+    doc.text('Pág. ' + i + '/' + pageCount, 196, 294, { align: 'right' });
+  }
+
+  doc.save('relatorio_empresario_' + (a.apelido||a.nome).replace(/\s/g,'_') + '_' + new Date().toISOString().split('T')[0] + '.pdf');
+  showToast('📄 Relatório gerado!');
+}
+
 // ======= NOTAS =======
 function renderNotas() {
   const a = state.atletaAtual;
@@ -6164,6 +7187,15 @@ function salvarNota() {
 
 // ======= MODAIS =======
 function fecharModal(id) {
+  if (id === 'modal-atleta' && state.editandoAtletaId) {
+    state.editandoAtletaId = null;
+    const titulo = document.querySelector('#modal-atleta h2');
+    if (titulo) titulo.textContent = '➕ Novo Atleta';
+    const btnSalvar = document.querySelector('#modal-atleta .btn-primary');
+    if (btnSalvar) btnSalvar.textContent = 'CADASTRAR ATLETA';
+    const senhaLabel = document.querySelector('label[for="at-senha"]');
+    if (senhaLabel) senhaLabel.textContent = '🔑 Senha de acesso';
+  }
   document.getElementById(id).classList.add('hidden');
 }
 
@@ -6186,7 +7218,9 @@ async function trocarSenhaAtleta() {
   const nova = document.getElementById('senha-nova').value;
   const confirmar = document.getElementById('senha-confirmar').value;
 
-  if (atual !== a.senhaAcesso) {
+  const atualHash = await hashSenha(atual);
+  // Compatível com senha antiga (texto puro) e nova (hash)
+  if (a.senhaAcesso !== atualHash && a.senhaAcesso !== atual) {
     showToast('Senha atual incorreta', 'erro');
     return;
   }
@@ -6199,7 +7233,7 @@ async function trocarSenhaAtleta() {
     return;
   }
 
-  a.senhaAcesso = nova;
+  a.senhaAcesso = await hashSenha(nova);
   await salvarEstado();
 
   document.getElementById('senha-atual').value = '';
@@ -6534,5 +7568,43 @@ if (!verificarModoPublico()) {
     }
   })();
 }</script>
+
+  <!-- ===== PWA INSTALL BANNER ===== -->
+  <div id="pwa-install-banner">
+    <div class="pwa-banner-icon">📲</div>
+    <div class="pwa-banner-text">
+      <strong>Instalar PADOTY BOXING</strong>
+      <span>Acesse como app no celular, tablet ou computador</span>
+    </div>
+    <div class="pwa-banner-actions">
+      <button class="btn-pwa-install" onclick="pwaInstalar()">INSTALAR</button>
+      <button class="btn-pwa-dismiss" onclick="pwaDismiss()">✕</button>
+    </div>
+  </div>
+
+  <!-- Modal instruções iOS -->
+  <div id="pwa-ios-modal">
+    <div class="pwa-ios-card">
+      <h3>📲 Instalar no iPhone / iPad</h3>
+      <div class="pwa-ios-step">
+        <div class="step-num">1</div>
+        <p>Toque no botão <strong>Compartilhar</strong> (ícone de seta para cima) na barra inferior do Safari</p>
+      </div>
+      <div class="pwa-ios-step">
+        <div class="step-num">2</div>
+        <p>Role para baixo e toque em <strong>"Adicionar à Tela de Início"</strong></p>
+      </div>
+      <div class="pwa-ios-step">
+        <div class="step-num">3</div>
+        <p>Confirme tocando em <strong>"Adicionar"</strong> no canto superior direito</p>
+      </div>
+      <div class="pwa-ios-step">
+        <div class="step-num">4</div>
+        <p>O app aparecerá na sua tela inicial como qualquer outro app 🥊</p>
+      </div>
+      <button class="btn-pwa-install" style="width:100%;margin-top:0.5rem;" onclick="document.getElementById('pwa-ios-modal').classList.remove('open')">ENTENDIDO</button>
+    </div>
+  </div>
+
 </body>
 </html>
