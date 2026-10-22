@@ -1232,11 +1232,100 @@ document.head.appendChild(_appleIcon);
   </nav>
 
   <nav class="nav-tabs hidden" id="nav-tabs-atleta">
+    <div class="nav-tab" onclick="showTab('atleta-dashboard')">Minha Evolução</div>
     <div class="nav-tab active" onclick="showTab('sessao')">Treino do Dia</div>
     <div class="nav-tab" onclick="showTab('checkin')">Check-in</div>
     <div class="nav-tab" onclick="showTab('proposito')">Propósito</div>
     <div class="nav-tab" onclick="showTab('perfil')">Perfil</div>
   </nav>
+
+  <!-- DASHBOARD DO ATLETA -->
+  <div id="tab-atleta-dashboard" class="content hidden">
+    <div id="atleta-dash-countdown" class="countdown-bar" style="display:none;">
+      <div>
+        <div class="countdown-label">Até a luta</div>
+        <div id="atleta-dash-luta-info" style="font-size:0.8rem;color:var(--cinza);margin-top:0.2rem;">—</div>
+      </div>
+      <div class="countdown-items">
+        <div class="countdown-item">
+          <div class="countdown-number" id="atleta-dash-dias">—</div>
+          <div class="countdown-unit">dias</div>
+        </div>
+        <div class="countdown-item">
+          <div class="countdown-number" id="atleta-dash-semanas">—</div>
+          <div class="countdown-unit">semanas</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="stats-grid">
+      <div class="stat-box">
+        <div class="stat-number" id="atleta-stat-sessoes" style="color:var(--vermelho)">0</div>
+        <div class="stat-label">Treinos Feitos</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-number" id="atleta-stat-presenca" style="color:var(--dourado)">—</div>
+        <div class="stat-label">% Presença</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-number" id="atleta-stat-pse" style="color:var(--azul)">—</div>
+        <div class="stat-label">PSE Média</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-number" id="atleta-stat-peso" style="color:var(--verde)">—</div>
+        <div class="stat-label">Peso Atual (kg)</div>
+      </div>
+    </div>
+    <div id="atleta-stat-fc-card" style="display:none;background:linear-gradient(135deg,#1a0808,var(--card));border:1px solid #7b1a1a;border-radius:10px;padding:0.8rem 1rem;margin-bottom:0.75rem;">
+      <div style="font-size:0.72rem;color:#e74c3c;font-weight:600;margin-bottom:0.4rem;">❤️ Dados Cardíacos — Média dos Treinos</div>
+      <div style="display:flex;gap:1rem;">
+        <div style="text-align:center;">
+          <div id="atleta-stat-fc-media" style="font-size:1.5rem;font-weight:700;color:#f39c12;">—</div>
+          <div style="font-size:0.62rem;color:var(--cinza);">FC Média (bpm)</div>
+        </div>
+        <div style="text-align:center;">
+          <div id="atleta-stat-fc-max" style="font-size:1.5rem;font-weight:700;color:#e74c3c;">—</div>
+          <div style="font-size:0.62rem;color:var(--cinza);">FC Máx registrada</div>
+        </div>
+        <div style="text-align:center;flex:1;">
+          <div id="atleta-stat-fc-sessoes" style="font-size:1.5rem;font-weight:700;color:#9b59b6;">—</div>
+          <div style="font-size:0.62rem;color:var(--cinza);">Sessões com FC</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">📊 Evolução da <span class="accent">PSE</span></div>
+      <div style="font-size:0.7rem;color:var(--cinza);margin-bottom:0.6rem;">Seu esforço percebido ao longo da preparação</div>
+      <canvas id="atleta-grafico-pse" height="120" style="width:100%;"></canvas>
+      <div id="atleta-grafico-pse-vazio" style="font-size:0.8rem;color:var(--cinza);text-align:center;padding:1rem;">Nenhum check-in registrado ainda.</div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">⚖️ Evolução do <span class="accent">Peso</span></div>
+      <div style="font-size:0.7rem;color:var(--cinza);margin-bottom:0.6rem;">Seu peso ao longo da preparação</div>
+      <div id="atleta-peso-info" style="font-size:0.82rem;margin-bottom:0.5rem;"></div>
+      <canvas id="atleta-grafico-peso" height="120" style="width:100%;display:none;"></canvas>
+    </div>
+
+    <div class="card">
+      <div class="card-title">📅 <span class="accent">Presença</span> — Últimas 4 Semanas</div>
+      <div id="atleta-presenca-grid" style="display:grid;grid-template-columns:repeat(7,1fr);gap:3px;margin-top:0.5rem;"></div>
+      <div style="display:flex;gap:1rem;margin-top:0.6rem;font-size:0.68rem;color:var(--cinza);">
+        <span>🟩 Treino  🟥 Falta  ⬜ Sem registro</span>
+      </div>
+    </div>
+
+    <div class="card" id="atleta-dash-evolucao-card" style="display:none;">
+      <div class="card-title">🏆 Sua <span class="accent">Evolução</span></div>
+      <div id="atleta-dash-evolucao-conteudo" style="font-size:0.85rem;line-height:1.8;"></div>
+    </div>
+
+    <div class="card" style="background:linear-gradient(135deg,#0a1a0a,var(--card));border-color:var(--verde);">
+      <div class="card-title">💬 Mensagem do <span class="accent">Treinador</span></div>
+      <div id="atleta-dash-feedback" style="font-size:0.85rem;color:var(--cinza);line-height:1.7;font-style:italic;">Nenhuma mensagem ainda.</div>
+    </div>
+  </div>
 
   <!-- DASHBOARD -->
   <div id="tab-dashboard" class="content">
@@ -1318,6 +1407,7 @@ document.head.appendChild(_appleIcon);
       <div class="section-title">Periodização</div>
       <div style="display:flex;gap:0.5rem;">
         <button class="btn-secondary" onclick="analisarPeriodizacaoCompleta()" style="font-size:0.75rem;padding:0.5rem 0.8rem;">🔍 Analisar</button>
+        <button class="btn-secondary" onclick="resetarPeriodizacao()" style="font-size:0.75rem;padding:0.5rem 0.8rem;border-color:#c0392b;color:#e74c3c;" title="Apagar periodização atual e começar do zero">🗑️ Resetar</button>
         <button class="btn-gold" onclick="abrirModalGerarIA()">⚡ GERAR COM IA</button>
       </div>
     </div>
@@ -1404,6 +1494,43 @@ document.head.appendChild(_appleIcon);
       <!-- Mensagem de acolhimento após ausência -->
       <div id="msg-acolhimento-container" class="hidden" style="background:rgba(100,149,237,0.1);border:1px solid #6495ED;border-radius:8px;padding:0.85rem;margin-bottom:1rem;font-size:0.85rem;color:#aac4f0;line-height:1.5;">
         <span id="msg-acolhimento"></span>
+      </div>
+
+      <!-- MONITOR CARDÍACO BLUETOOTH -->
+      <div id="fc-widget" style="background:linear-gradient(135deg,#1a0a0a,#2a0a0a);border:1px solid #7b1a1a;border-radius:10px;padding:1rem;margin-bottom:1rem;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.6rem;">
+          <div style="font-size:0.8rem;color:#e74c3c;font-weight:600;">❤️ Monitor Cardíaco</div>
+          <div id="fc-status-dot" style="width:8px;height:8px;border-radius:50%;background:#444;"></div>
+        </div>
+        <div id="fc-desconectado" style="display:flex;flex-direction:column;gap:0.5rem;">
+          <div style="font-size:0.72rem;color:var(--cinza);">Conecte sua cinta Polar, Garmin, Wahoo ou similar via Bluetooth.</div>
+          <button onclick="conectarCintaFC()" id="btn-conectar-fc" style="background:transparent;border:1px solid #e74c3c;color:#e74c3c;border-radius:6px;padding:0.5rem 1rem;font-size:0.8rem;cursor:pointer;letter-spacing:0.06em;">📡 CONECTAR CINTA</button>
+          <div id="fc-sem-bt" style="display:none;font-size:0.72rem;color:#c0392b;">⚠️ Web Bluetooth não disponível. Use o Chrome no celular ou PC.</div>
+        </div>
+        <div id="fc-conectado" style="display:none;">
+          <div style="display:flex;align-items:center;gap:1rem;margin-bottom:0.5rem;">
+            <div style="text-align:center;">
+              <div id="fc-bpm-display" style="font-size:2.8rem;font-weight:900;color:#e74c3c;line-height:1;font-family:'Bebas Neue',sans-serif;letter-spacing:0.04em;">--</div>
+              <div style="font-size:0.65rem;color:var(--cinza);">bpm atual</div>
+            </div>
+            <div style="flex:1;display:grid;grid-template-columns:1fr 1fr;gap:0.4rem;">
+              <div style="background:#1a1a1a;border-radius:6px;padding:0.4rem;text-align:center;">
+                <div id="fc-media-display" style="font-size:1.1rem;font-weight:700;color:#f39c12;">--</div>
+                <div style="font-size:0.6rem;color:var(--cinza);">FC Média</div>
+              </div>
+              <div style="background:#1a1a1a;border-radius:6px;padding:0.4rem;text-align:center;">
+                <div id="fc-max-display" style="font-size:1.1rem;font-weight:700;color:#e74c3c;">--</div>
+                <div style="font-size:0.6rem;color:var(--cinza);">FC Máx</div>
+              </div>
+            </div>
+          </div>
+          <div id="fc-zona-label" style="font-size:0.72rem;text-align:center;padding:0.3rem;border-radius:4px;margin-bottom:0.3rem;background:#222;"></div>
+          <div id="fc-zona-alerta" style="display:none;font-size:0.68rem;text-align:center;padding:0.25rem 0.5rem;border-radius:4px;background:#111;margin-bottom:0.3rem;font-weight:600;"></div>
+          <div style="display:flex;gap:0.5rem;">
+            <div id="fc-device-name" style="font-size:0.68rem;color:var(--cinza);flex:1;align-self:center;"></div>
+            <button onclick="desconectarFC()" style="background:transparent;border:1px solid #555;color:#888;border-radius:4px;padding:0.25rem 0.6rem;font-size:0.68rem;cursor:pointer;">Desconectar</button>
+          </div>
+        </div>
       </div>
 
       <div class="input-group">
@@ -1785,6 +1912,20 @@ document.head.appendChild(_appleIcon);
         <label>Tempo de Experiência no Boxe</label>
         <input type="text" id="cartel-experiencia" placeholder="Ex: 5 anos">
       </div>
+
+      <div style="font-size:0.7rem;letter-spacing:0.1em;color:#e74c3c;text-transform:uppercase;margin:1rem 0 0.5rem;">❤️ Dados Cardíacos (Karvonen)</div>
+      <div style="font-size:0.72rem;color:var(--cinza);margin-bottom:0.6rem;line-height:1.5;">FC Repouso: medir pela manhã, antes de levantar, 3 dias seguidos → usar a menor. FC Máxima: registrar após teste de esforço máximo aplicado pelo treinador.</div>
+      <div style="display:flex;gap:0.6rem;">
+        <div class="input-group" style="flex:1;">
+          <label style="color:#f39c12;">FC Repouso (bpm)</label>
+          <input type="number" id="cartel-fc-repouso" min="30" max="100" placeholder="Ex: 52" oninput="_atualizarPreviewZonasFC()">
+        </div>
+        <div class="input-group" style="flex:1;">
+          <label style="color:#e74c3c;">FC Máxima real (bpm)</label>
+          <input type="number" id="cartel-fc-max" min="100" max="230" placeholder="Ex: 187" oninput="_atualizarPreviewZonasFC()">
+        </div>
+      </div>
+      <div id="cartel-fc-zonas-preview" style="display:none;background:#1a0a0a;border:1px solid #7b1a1a;border-radius:8px;padding:0.75rem;margin-bottom:0.75rem;font-size:0.75rem;"></div>
 
       <div style="font-size:0.7rem;letter-spacing:0.1em;color:var(--dourado);text-transform:uppercase;margin:1rem 0 0.5rem;">Cartel Profissional</div>
       <div style="display:flex;gap:0.6rem;">
@@ -3103,6 +3244,7 @@ function showTab(tab) {
   if (tab === 'perfil') renderPerfilComportamental();
   if (tab === 'notas') renderNotas();
   if (tab === 'comparativo') renderComparativo();
+  if (tab === 'atleta-dashboard') renderAtletaDashboard();
   if (tab === 'atletas') { renderAtletas(); renderConfigChaveIA(); }
 }
 
@@ -3654,6 +3796,24 @@ document.addEventListener('change', function(e) {
   }
 });
 
+// ======= RESETAR PERIODIZAÇÃO =======
+function resetarPeriodizacao() {
+  const a = state.atletaAtual;
+  if (!a) { showToast('Nenhum atleta selecionado', 'erro'); return; }
+  const nome = a.apelido || a.nome || 'o atleta';
+  const confirmado = confirm(
+    `Resetar periodização de ${nome}?\n\n` +
+    `Isso vai APAGAR todo o plano de treino atual (fases, microciclos, luta alvo).\n\n` +
+    `Check-ins, avaliações, pesos e notas NÃO serão perdidos.\n\n` +
+    `Confirmar?`
+  );
+  if (!confirmado) return;
+  a.periodizacao = null;
+  salvarEstado();
+  renderPeriodizacao();
+  showToast('Periodização resetada. Crie uma nova com IA ou manualmente.');
+}
+
 // ======= PERIODIZAÇÃO IA =======
 function abrirModalGerarIA() {
   if (!state.atletaAtual) { showToast('Selecione um atleta primeiro', 'erro'); return; }
@@ -3784,6 +3944,19 @@ ${a.dataLuta ? 'Data da luta/evento: ' + formatarData(a.dataLuta) : 'Sem data de
 Duração total: ${numSemanas} semanas
 ${obsExtra ? 'Observações do treinador: ' + obsExtra : ''}
 ${notaMotivacao}
+${(a.fcRepouso && a.fcMaxReal) ? `
+═══════════════════════════════
+DADOS CARDÍACOS — KARVONEN — USO OBRIGATÓRIO
+═══════════════════════════════
+FC Repouso (medida pela manhã): ${a.fcRepouso} bpm
+FC Máxima Real (teste esforço máximo): ${a.fcMaxReal} bpm
+FC de Reserva: ${a.fcMaxReal - a.fcRepouso} bpm
+
+ZONAS KARVONEN CALCULADAS:
+${_calcularZonasKarvonen(a.fcRepouso, a.fcMaxReal).map(z => `${z.emoji} ${z.nome}: ${z.bpmMin}–${z.bpmMax} bpm (${Math.round(z.pctMin*100)}–${Math.round(z.pctMax*100)}%) — ${z.descricao}`).join('\n')}
+
+INSTRUÇÃO: Para cada sessão, inclua a zona-alvo de FC (ex: "Zona 3: 140–158 bpm"). Use APENAS as zonas Karvonen acima — NUNCA use 220 menos a idade. Sessões de recuperação devem ficar abaixo de ${_calcularZonasKarvonen(a.fcRepouso, a.fcMaxReal)[1].bpmMax} bpm (Zona 2).` : `
+DADOS CARDÍACOS: Não disponíveis. Use PSE como marcador de intensidade.`}
 
 ═══════════════════════════════
 ESTRUTURE O PROGRAMA EM:
@@ -4353,8 +4526,44 @@ function renderSessaoHoje() {
   el.innerHTML = html;
 }
 
+function _renderFCZonaSessao(s) {
+  const a = state.atletaAtual;
+  if (!a?.fcRepouso || !a?.fcMaxReal) return '';
+  // Detectar zona pela PSE da sessão ou foco
+  const foco = (s.foco || s.resumo || s.principal || '').toLowerCase();
+  let zonaIdx = 2; // padrão: aeróbio moderado
+  if (foco.includes('recuper') || foco.includes('leve') || foco.includes('active recovery')) zonaIdx = 0;
+  else if (foco.includes('base aeróbi') || foco.includes('aeróbio leve') || foco.includes('baixa intensidade')) zonaIdx = 1;
+  else if (foco.includes('limiar') || foco.includes('anaeróbi') || foco.includes('alta intens') || foco.includes('latic')) zonaIdx = 3;
+  else if (foco.includes('máximo') || foco.includes('sprint') || foco.includes('potência') || foco.includes('vmax')) zonaIdx = 4;
+  else if (s.pse && s.pse >= 8) zonaIdx = 4;
+  else if (s.pse && s.pse >= 7) zonaIdx = 3;
+  else if (s.pse && s.pse <= 4) zonaIdx = 0;
+  else if (s.pse && s.pse <= 5) zonaIdx = 1;
+  // Verificar se a IA já incluiu texto de zona FC na sessão
+  const textoSessao = (s.principal || '') + (s.resumo || '') + (s.aquecimento || '');
+  const matchZona = textoSessao.match(/zona[\s-]*(\d)/i) || textoSessao.match(/(\d{2,3})[–-](\d{2,3})\s*bpm/i);
+  let zonaFinal;
+  if (matchZona && matchZona[1] && parseInt(matchZona[1]) >= 1 && parseInt(matchZona[1]) <= 5) {
+    zonaFinal = _calcularZonasKarvonen(a.fcRepouso, a.fcMaxReal)[parseInt(matchZona[1]) - 1];
+  } else {
+    const zonas = _calcularZonasKarvonen(a.fcRepouso, a.fcMaxReal);
+    zonaFinal = zonas[Math.min(zonaIdx, zonas.length - 1)];
+  }
+  if (!zonaFinal) return '';
+  return `<div style="display:flex;align-items:center;gap:0.6rem;background:rgba(0,0,0,0.3);border:1px solid ${zonaFinal.cor}33;border-left:3px solid ${zonaFinal.cor};padding:0.4rem 0.7rem;border-radius:4px;margin-top:0.4rem;">
+    <span style="font-size:1rem;">${zonaFinal.emoji}</span>
+    <div>
+      <div style="font-size:0.72rem;color:${zonaFinal.cor};font-weight:700;letter-spacing:0.08em;">${zonaFinal.nome}</div>
+      <div style="font-size:0.68rem;color:var(--cinza);">❤️ Meta: <b style="color:${zonaFinal.cor};">${zonaFinal.bpmMin}–${zonaFinal.bpmMax} bpm</b> · ${Math.round(zonaFinal.pctMin*100)}–${Math.round(zonaFinal.pctMax*100)}% FC Reserva</div>
+    </div>
+  </div>`;
+}
+
 function renderSessaoCard(s, semIdx, diaIdx, ocultarObsTreinador) {
+  const fcZonaHtml = _renderFCZonaSessao(s);
   return `
+    ${fcZonaHtml ? `<div style="margin-bottom:0.6rem;">${fcZonaHtml}</div>` : ''}
     <div class="sessao-bloco">
       <div class="bloco-label">🔥 Aquecimento</div>
       <div class="bloco-content">${(s.aquecimento || '').replace(/\n/g,'<br>')}</div>
@@ -4587,7 +4796,7 @@ function renderCheckin() {
       const motLabel = ['','Muito mal','Mal','Regular','Bem','Muito bem'];
       return `
         <div class="nota-card">
-          <div class="nota-data">${formatarData(c.data)} · PSE: ${c.pse}/10 · Sono: ${'⭐'.repeat(c.sono||0)} · Disposição: ${'⭐'.repeat(c.disposicao||0)}${c.peso ? ` · ⚖️ ${c.peso}kg` : ''}${c.motivacao ? ` · ${motEmoji[c.motivacao]} ${motLabel[c.motivacao]}` : ''}</div>
+          <div class="nota-data">${formatarData(c.data)} · PSE: ${c.pse}/10 · Sono: ${'⭐'.repeat(c.sono||0)} · Disposição: ${'⭐'.repeat(c.disposicao||0)}${c.peso ? ` · ⚖️ ${c.peso}kg` : ''}${c.motivacao ? ` · ${motEmoji[c.motivacao]} ${motLabel[c.motivacao]}` : ''}${c.fcMedia ? ` · ❤️ ${c.fcMedia}/${c.fcMax} bpm` : ''}</div>
           ${c.dor ? `<div style="font-size:0.78rem;color:var(--amarelo);margin-bottom:0.2rem;">⚠️ ${c.dor}</div>` : ''}
           ${c.obs ? `<div class="nota-texto">${c.obs}</div>` : ''}
           ${(!souAtleta && c.obsTreinador) ? `<div style="font-size:0.78rem;color:var(--dourado);margin-top:0.3rem;border-top:1px solid var(--borda);padding-top:0.3rem;">📝 ${c.obsTreinador}</div>` : ''}
@@ -4871,6 +5080,231 @@ async function confirmarPresencaTreinador(data) {
   renderCheckin();
 }
 
+// ======= MONITOR CARDÍACO BLUETOOTH =======
+const fcState = {
+  device: null,
+  characteristic: null,
+  leituras: [],
+  max: 0,
+  ativo: false,
+  intervaloDot: null,
+};
+
+// ======= KARVONEN — ZONAS DE FC DE RESERVA =======
+const FC_ZONAS_DEF = [
+  { id: 'z1', nome: 'Zona 1 — Recuperação Ativa',    cor: '#3498db', emoji: '💙', pctMin: 0.50, pctMax: 0.60, descricao: 'Aeróbio leve, recuperação, aquecimento' },
+  { id: 'z2', nome: 'Zona 2 — Base Aeróbia',         cor: '#27ae60', emoji: '💚', pctMin: 0.60, pctMax: 0.70, descricao: 'Fundo aeróbio, eficiência cardiovascular' },
+  { id: 'z3', nome: 'Zona 3 — Aeróbio Moderado',     cor: '#f1c40f', emoji: '💛', pctMin: 0.70, pctMax: 0.80, descricao: 'Desenvolvimento aeróbio, limiar inferior' },
+  { id: 'z4', nome: 'Zona 4 — Limiar Anaeróbico',    cor: '#e67e22', emoji: '🟠', pctMin: 0.80, pctMax: 0.90, descricao: 'Lactato, tolerância, alta intensidade' },
+  { id: 'z5', nome: 'Zona 5 — Máximo / Neuromuscular', cor: '#e74c3c', emoji: '🔴', pctMin: 0.90, pctMax: 1.00, descricao: 'Esforço máximo, sprints, potência anaeróbia' },
+];
+
+function _calcularZonasKarvonen(fcRepouso, fcMax) {
+  // Fórmula: FCalvo = (FCmax - FCrepouso) × % + FCrepouso
+  return FC_ZONAS_DEF.map(z => ({
+    ...z,
+    bpmMin: Math.round((fcMax - fcRepouso) * z.pctMin + fcRepouso),
+    bpmMax: Math.round((fcMax - fcRepouso) * z.pctMax + fcRepouso),
+  }));
+}
+
+function _fcZonaAtleta(bpm) {
+  const a = state.atletaAtual;
+  const fcRep = a?.fcRepouso;
+  const fcMax = a?.fcMaxReal;
+  if (!fcRep || !fcMax) {
+    // Fallback por bpm bruto aproximado (sem Karvonen)
+    if (bpm < 110) return { ...FC_ZONAS_DEF[0], bpmMin: 0, bpmMax: 110 };
+    if (bpm < 130) return { ...FC_ZONAS_DEF[1], bpmMin: 110, bpmMax: 130 };
+    if (bpm < 150) return { ...FC_ZONAS_DEF[2], bpmMin: 130, bpmMax: 150 };
+    if (bpm < 170) return { ...FC_ZONAS_DEF[3], bpmMin: 150, bpmMax: 170 };
+    return { ...FC_ZONAS_DEF[4], bpmMin: 170, bpmMax: 999 };
+  }
+  const zonas = _calcularZonasKarvonen(fcRep, fcMax);
+  for (let i = zonas.length - 1; i >= 0; i--) {
+    if (bpm >= zonas[i].bpmMin) return zonas[i];
+  }
+  return zonas[0];
+}
+
+function _atualizarPreviewZonasFC() {
+  const fcRepEl = document.getElementById('cartel-fc-repouso');
+  const fcMaxEl = document.getElementById('cartel-fc-max');
+  const prevEl = document.getElementById('cartel-fc-zonas-preview');
+  if (!fcRepEl || !fcMaxEl || !prevEl) return;
+  const fcRep = parseInt(fcRepEl.value);
+  const fcMax = parseInt(fcMaxEl.value);
+  if (!fcRep || !fcMax || fcRep < 30 || fcMax < 100 || fcRep >= fcMax) {
+    prevEl.style.display = 'none';
+    return;
+  }
+  const reserva = fcMax - fcRep;
+  const zonas = _calcularZonasKarvonen(fcRep, fcMax);
+  prevEl.style.display = 'block';
+  prevEl.innerHTML = `
+    <div style="font-size:0.7rem;color:var(--cinza);margin-bottom:0.5rem;">Zonas calculadas — FC Reserva: ${reserva} bpm · Repouso: ${fcRep} · Máxima: ${fcMax}</div>
+    ${zonas.map(z => `
+      <div style="display:flex;align-items:center;gap:0.5rem;padding:0.2rem 0;border-bottom:1px solid #222;">
+        <span style="color:${z.cor};width:16px;text-align:center;">${z.emoji}</span>
+        <span style="flex:1;color:#ccc;">${z.nome}</span>
+        <span style="color:${z.cor};font-weight:700;font-size:0.82rem;">${z.bpmMin}–${z.bpmMax} bpm</span>
+        <span style="color:var(--cinza);font-size:0.65rem;">${Math.round(z.pctMin*100)}–${Math.round(z.pctMax*100)}%</span>
+      </div>`).join('')}`;
+}
+
+// Compat alias (antigo código usava _fcZona)
+function _fcZona(bpm) { return _fcZonaAtleta(bpm); }
+
+function _sessaoHoje() {
+  const a = state.atletaAtual;
+  if (!a?.periodizacao?.semanas) return null;
+  const hoje = new Date().toISOString().split('T')[0];
+  for (let si = 0; si < a.periodizacao.semanas.length; si++) {
+    for (let di = 0; di < a.periodizacao.semanas[si].sessoes.length; di++) {
+      if (a.periodizacao.semanas[si].sessoes[di].data === hoje) {
+        return { s: a.periodizacao.semanas[si].sessoes[di], semIdx: si, diaIdx: di };
+      }
+    }
+  }
+  return null;
+}
+
+function _fcAtualizarDisplay(bpm) {
+  const el = id => document.getElementById(id);
+  if (el('fc-bpm-display')) el('fc-bpm-display').textContent = bpm;
+  fcState.leituras.push(bpm);
+  if (bpm > fcState.max) { fcState.max = bpm; if (el('fc-max-display')) el('fc-max-display').textContent = bpm; }
+  const media = Math.round(fcState.leituras.reduce((s, v) => s + v, 0) / fcState.leituras.length);
+  if (el('fc-media-display')) el('fc-media-display').textContent = media;
+  const zona = _fcZonaAtleta(bpm);
+  if (el('fc-zona-label')) {
+    el('fc-zona-label').innerHTML = `${zona.emoji} ${zona.nome}`;
+    el('fc-zona-label').style.color = zona.cor;
+    el('fc-zona-label').style.borderLeft = `3px solid ${zona.cor}`;
+  }
+  // Pulsar o dot
+  if (el('fc-status-dot')) {
+    el('fc-status-dot').style.background = zona.cor;
+    el('fc-status-dot').style.boxShadow = `0 0 6px ${zona.cor}`;
+    el('fc-bpm-display').style.color = zona.cor;
+  }
+  // Alerta de zona prescrita para sessão do dia
+  const alertEl = el('fc-zona-alerta');
+  if (alertEl) {
+    const a = state.atletaAtual;
+    const hojeInfo = _sessaoHoje();
+    if (hojeInfo && a?.fcRepouso && a?.fcMaxReal) {
+      const zonaPrescrida = _renderFCZonaIndex(hojeInfo.s);
+      const zonas = _calcularZonasKarvonen(a.fcRepouso, a.fcMaxReal);
+      const zp = zonas[zonaPrescrida];
+      if (zp) {
+        if (bpm < zp.bpmMin) {
+          alertEl.innerHTML = `⬆️ Intensifique — zona alvo: ${zp.bpmMin}–${zp.bpmMax} bpm (${zp.nome})`;
+          alertEl.style.color = '#f39c12'; alertEl.style.display = 'block';
+        } else if (bpm > zp.bpmMax) {
+          alertEl.innerHTML = `⬇️ Reduza — acima da zona alvo: ${zp.bpmMin}–${zp.bpmMax} bpm (${zp.nome})`;
+          alertEl.style.color = '#e74c3c'; alertEl.style.display = 'block';
+        } else {
+          alertEl.innerHTML = `✅ Na zona prescrita (${zp.nome})`;
+          alertEl.style.color = '#27ae60'; alertEl.style.display = 'block';
+        }
+      } else { alertEl.style.display = 'none'; }
+    } else { alertEl.style.display = 'none'; }
+  }
+}
+
+function _renderFCZonaIndex(s) {
+  // Detectar índice de zona (0–4) pela sessão
+  const foco = (s.foco || s.resumo || s.principal || '').toLowerCase();
+  if (foco.includes('recuper') || foco.includes('leve') || foco.includes('active recovery')) return 0;
+  if (foco.includes('base aeróbi') || foco.includes('aeróbio leve') || foco.includes('baixa intensidade')) return 1;
+  if (foco.includes('limiar') || foco.includes('anaeróbi') || foco.includes('alta intens')) return 3;
+  if (foco.includes('máximo') || foco.includes('sprint') || foco.includes('potência')) return 4;
+  if (s.pse && s.pse >= 8) return 4;
+  if (s.pse && s.pse >= 7) return 3;
+  if (s.pse && s.pse <= 4) return 0;
+  if (s.pse && s.pse <= 5) return 1;
+  return 2; // padrão aeróbio moderado
+}
+
+function _fcParseMedida(event) {
+  // Protocolo BLE Heart Rate Measurement (0x2A37)
+  const flags = event.target.value.getUint8(0);
+  const formato16bit = flags & 0x01;
+  const bpm = formato16bit
+    ? event.target.value.getUint16(1, true)
+    : event.target.value.getUint8(1);
+  _fcAtualizarDisplay(bpm);
+}
+
+async function conectarCintaFC() {
+  const elSemBT = document.getElementById('fc-sem-bt');
+  if (!navigator.bluetooth) {
+    if (elSemBT) elSemBT.style.display = 'block';
+    return;
+  }
+  try {
+    const btn = document.getElementById('btn-conectar-fc');
+    if (btn) { btn.textContent = '⏳ Conectando...'; btn.disabled = true; }
+
+    const device = await navigator.bluetooth.requestDevice({
+      filters: [{ services: ['heart_rate'] }],
+      optionalServices: ['heart_rate']
+    });
+
+    fcState.device = device;
+    device.addEventListener('gattserverdisconnected', _fcDesconectado);
+
+    const server = await device.gatt.connect();
+    const service = await server.getPrimaryService('heart_rate');
+    const char = await service.getCharacteristic('heart_rate_measurement');
+    fcState.characteristic = char;
+
+    await char.startNotifications();
+    char.addEventListener('characteristicvaluechanged', _fcParseMedida);
+
+    // Reset leituras
+    fcState.leituras = [];
+    fcState.max = 0;
+    fcState.ativo = true;
+
+    // Atualizar UI
+    const elDesc = document.getElementById('fc-desconectado');
+    const elConec = document.getElementById('fc-conectado');
+    if (elDesc) elDesc.style.display = 'none';
+    if (elConec) elConec.style.display = 'block';
+    const nomeEl = document.getElementById('fc-device-name');
+    if (nomeEl) nomeEl.textContent = '📡 ' + (device.name || 'Cinta conectada');
+
+    showToast('Cinta cardíaca conectada!');
+  } catch (e) {
+    const btn = document.getElementById('btn-conectar-fc');
+    if (btn) { btn.textContent = '📡 CONECTAR CINTA'; btn.disabled = false; }
+    if (e.name !== 'NotFoundError' && e.name !== 'AbortError') {
+      showToast('Erro ao conectar: ' + e.message, 'erro');
+    }
+  }
+}
+
+function _fcDesconectado() {
+  fcState.ativo = false;
+  const elDesc = document.getElementById('fc-desconectado');
+  const elConec = document.getElementById('fc-conectado');
+  const btn = document.getElementById('btn-conectar-fc');
+  if (elDesc) elDesc.style.display = 'flex';
+  if (elConec) elConec.style.display = 'none';
+  if (btn) { btn.textContent = '📡 CONECTAR CINTA'; btn.disabled = false; }
+  const dot = document.getElementById('fc-status-dot');
+  if (dot) { dot.style.background = '#444'; dot.style.boxShadow = 'none'; }
+}
+
+async function desconectarFC() {
+  if (fcState.device && fcState.device.gatt.connected) {
+    await fcState.device.gatt.disconnect();
+  }
+  _fcDesconectado();
+}
+
 function salvarCheckin() {
   const a = state.atletaAtual;
   if (!a) { showToast('Selecione um atleta', 'erro'); return; }
@@ -4879,6 +5313,12 @@ function salvarCheckin() {
   const hoje = new Date().toISOString().split('T')[0];
   const pesoVal = parseFloat(document.getElementById('checkin-peso').value);
   const obsTreinadorEl = document.getElementById('checkin-obs-treinador');
+
+  // Capturar FC se cinta conectada
+  const fcMedia = fcState.leituras.length > 0
+    ? Math.round(fcState.leituras.reduce((s, v) => s + v, 0) / fcState.leituras.length)
+    : null;
+  const fcMax = fcState.max > 0 ? fcState.max : null;
 
   const checkin = {
     data: hoje,
@@ -4891,6 +5331,8 @@ function salvarCheckin() {
     obsTreinador: (obsTreinadorEl && state.perfil === 'treinador') ? obsTreinadorEl.value.trim() : '',
     motivacao: state.motivacaoSelecionada || null,
     rounds: 10,
+    fcMedia: fcMedia,
+    fcMax: fcMax,
   };
 
   if (!a.checkins) a.checkins = [];
@@ -4915,7 +5357,18 @@ function salvarCheckin() {
   document.getElementById('checkin-obs').value = '';
   if (obsTreinadorEl) obsTreinadorEl.value = '';
 
-  showToast('Check-in salvo!');
+  // Reset leituras FC (mas mantém a cinta conectada)
+  fcState.leituras = [];
+  fcState.max = 0;
+  const fcBpmEl = document.getElementById('fc-bpm-display');
+  const fcMedEl = document.getElementById('fc-media-display');
+  const fcMaxEl = document.getElementById('fc-max-display');
+  if (fcBpmEl) fcBpmEl.textContent = '--';
+  if (fcMedEl) fcMedEl.textContent = '--';
+  if (fcMaxEl) fcMaxEl.textContent = '--';
+
+  const msgFC = fcMedia ? ` · FC média ${fcMedia} bpm (máx ${fcMax})` : '';
+  showToast('Check-in salvo!' + msgFC);
   renderCheckin();
 }
 
@@ -6222,6 +6675,13 @@ function renderPerfilComportamental() {
     document.getElementById('cartel-am-v').value = c.amV ?? '';
     document.getElementById('cartel-am-d').value = c.amD ?? '';
     document.getElementById('cartel-am-e').value = c.amE ?? '';
+    // FC
+    const fcRepEl = document.getElementById('cartel-fc-repouso');
+    const fcMaxEl = document.getElementById('cartel-fc-max');
+    if (fcRepEl) fcRepEl.value = a.fcRepouso || '';
+    if (fcMaxEl) fcMaxEl.value = a.fcMaxReal || '';
+    // Mostrar preview das zonas se já tiver ambos
+    _atualizarPreviewZonasFC();
   } else {
     const temCartel = c.nomeCompleto || c.nascimento || c.categoria;
     if (temCartel) {
@@ -6747,6 +7207,175 @@ function gerarRelatorioAtleta() {
   _pdfFooter(doc);
   doc.save(`meu_resumo_${(a.apelido||a.nome).replace(/\s/g,'_')}.pdf`);
   showToast('PDF gerado!');
+}
+
+// ======= DASHBOARD DO ATLETA (Minha Evolução) =======
+function renderAtletaDashboard() {
+  const a = state.atletaAtual;
+  if (!a) return;
+
+  const checkins = a.checkins || [];
+  const comPSE = checkins.filter(c => c.tipo !== 'falta' && c.pse > 0);
+  const faltas = checkins.filter(c => c.tipo === 'falta');
+
+  // Stats
+  const totalTreinos = comPSE.length;
+  const totalFaltas = faltas.length;
+  const total = totalTreinos + totalFaltas;
+  const presenca = total > 0 ? Math.round((totalTreinos / total) * 100) : null;
+  const pseMedia = comPSE.length > 0 ? (comPSE.reduce((s,c) => s + c.pse, 0) / comPSE.length).toFixed(1) : null;
+  const pesos = (a.pesos || []).sort((x,y) => new Date(x.data) - new Date(y.data));
+  const pesoAtual = pesos.length > 0 ? pesos[pesos.length-1].valor : null;
+
+  const el = id => document.getElementById(id);
+  if (el('atleta-stat-sessoes')) el('atleta-stat-sessoes').textContent = totalTreinos;
+  if (el('atleta-stat-presenca')) el('atleta-stat-presenca').textContent = presenca !== null ? presenca + '%' : '—';
+  if (el('atleta-stat-pse')) el('atleta-stat-pse').textContent = pseMedia || '—';
+  if (el('atleta-stat-peso')) el('atleta-stat-peso').textContent = pesoAtual ? pesoAtual + ' kg' : '—';
+
+  // Stats de FC (se houver dados de cinta)
+  const comFC = checkins.filter(c => c.fcMedia && c.fcMedia > 0);
+  const fcCard = el('atleta-stat-fc-card');
+  if (fcCard) {
+    if (comFC.length > 0) {
+      fcCard.style.display = 'block';
+      const fcMediaGeral = Math.round(comFC.reduce((s, c) => s + c.fcMedia, 0) / comFC.length);
+      const fcMaxGeral = Math.max(...comFC.map(c => c.fcMax || 0));
+      if (el('atleta-stat-fc-media')) el('atleta-stat-fc-media').textContent = fcMediaGeral;
+      if (el('atleta-stat-fc-max')) el('atleta-stat-fc-max').textContent = fcMaxGeral > 0 ? fcMaxGeral : '—';
+      if (el('atleta-stat-fc-sessoes')) el('atleta-stat-fc-sessoes').textContent = comFC.length;
+    } else {
+      fcCard.style.display = 'none';
+    }
+  }
+
+  // Countdown luta
+  const p = a.periodizacao;
+  const countdownBar = el('atleta-dash-countdown');
+  if (p && p.dataLuta && countdownBar) {
+    const hoje = new Date(); hoje.setHours(0,0,0,0);
+    const luta = new Date(p.dataLuta + 'T00:00:00');
+    const diff = Math.ceil((luta - hoje) / 86400000);
+    if (diff > 0) {
+      countdownBar.style.display = 'flex';
+      if (el('atleta-dash-dias')) el('atleta-dash-dias').textContent = diff;
+      if (el('atleta-dash-semanas')) el('atleta-dash-semanas').textContent = Math.ceil(diff/7);
+      if (el('atleta-dash-luta-info')) el('atleta-dash-luta-info').textContent = (p.adversario ? 'vs ' + p.adversario + ' · ' : '') + new Date(p.dataLuta + 'T00:00:00').toLocaleDateString('pt-BR');
+    } else {
+      countdownBar.style.display = 'none';
+    }
+  } else if (countdownBar) {
+    countdownBar.style.display = 'none';
+  }
+
+  // Gráfico PSE
+  const vazioPse = el('atleta-grafico-pse-vazio');
+  if (comPSE.length > 0) {
+    const pseCanvas = el('atleta-grafico-pse');
+    if (pseCanvas) pseCanvas.style.display = 'block';
+    if (vazioPse) vazioPse.style.display = 'none';
+    const ultimos = comPSE.slice(-30);
+    const dadosPse = ultimos.map((c, i) => ({ x: i, y: c.pse, label: c.data ? c.data.slice(5) : '' }));
+    desenharGrafico('atleta-grafico-pse', dadosPse, { min: 0, max: 10, cor: '#C9A84C', dec: 0 });
+  } else {
+    const pseCanvas = el('atleta-grafico-pse');
+    if (pseCanvas) pseCanvas.style.display = 'none';
+    if (vazioPse) vazioPse.style.display = 'block';
+  }
+
+  // Gráfico Peso
+  const pesoInfoEl = el('atleta-peso-info');
+  if (pesos.length >= 2) {
+    const pesoCanvas = el('atleta-grafico-peso');
+    if (pesoCanvas) pesoCanvas.style.display = 'block';
+    const vals = pesos.map(p => parseFloat(p.valor));
+    const minP = Math.min(...vals) - 1;
+    const maxP = Math.max(...vals) + 1;
+    const dadosPeso = pesos.map((p, i) => ({ x: i, y: parseFloat(p.valor), label: p.data ? p.data.slice(5) : '' }));
+    desenharGrafico('atleta-grafico-peso', dadosPeso, { min: minP, max: maxP, cor: '#638532', dec: 1 });
+    const diff = (parseFloat(pesos[pesos.length-1].valor) - parseFloat(pesos[0].valor)).toFixed(1);
+    const sinal = diff > 0 ? '+' : '';
+    if (pesoInfoEl) pesoInfoEl.innerHTML = `<span style="color:var(--cinza)">Início: <b style="color:#fff">${pesos[0].valor} kg</b></span> &nbsp;→&nbsp; <span style="color:var(--cinza)">Atual: <b style="color:var(--verde)">${pesos[pesos.length-1].valor} kg</b></span> &nbsp;<span style="color:${diff < 0 ? 'var(--verde)' : 'var(--vermelho)'};">(${sinal}${diff} kg)</span>`;
+  } else {
+    const pesoCanvas = el('atleta-grafico-peso');
+    if (pesoCanvas) pesoCanvas.style.display = 'none';
+    if (pesoInfoEl) pesoInfoEl.innerHTML = '<span style="color:var(--cinza);font-size:0.8rem;">Ainda sem registros de peso suficientes.</span>';
+  }
+
+  // Grid de presença — últimas 4 semanas (28 dias)
+  const gridEl = el('atleta-presenca-grid');
+  if (gridEl) {
+    gridEl.innerHTML = '';
+    const hoje = new Date(); hoje.setHours(0,0,0,0);
+    const checkinMap = {};
+    checkins.forEach(c => { if (c.data) checkinMap[c.data] = c; });
+    for (let i = 27; i >= 0; i--) {
+      const d = new Date(hoje); d.setDate(d.getDate() - i);
+      const ds = d.toISOString().slice(0,10);
+      const ck = checkinMap[ds];
+      const div = document.createElement('div');
+      div.style.cssText = 'height:22px;border-radius:3px;display:flex;align-items:center;justify-content:center;font-size:0.6rem;';
+      if (!ck) {
+        div.style.background = '#333';
+        div.title = ds;
+      } else if (ck.tipo === 'falta') {
+        div.style.background = '#7b1a1a';
+        div.title = ds + ' (falta)';
+        div.textContent = '✗';
+      } else {
+        const pse = ck.pse || 5;
+        const g = Math.min(255, Math.round(50 + pse * 20));
+        div.style.background = `rgb(40,${g},40)`;
+        div.style.color = '#fff';
+        div.title = ds + ` (PSE ${pse})`;
+        div.textContent = pse;
+      }
+      gridEl.appendChild(div);
+    }
+  }
+
+  // Evolução — comparar primeiros 5 vs últimos 5 PSE
+  const evolCard = el('atleta-dash-evolucao-card');
+  const evolConteudo = el('atleta-dash-evolucao-conteudo');
+  if (evolCard && evolConteudo && comPSE.length >= 6) {
+    evolCard.style.display = 'block';
+    const primeiro = comPSE.slice(0, 5);
+    const ultimos5 = comPSE.slice(-5);
+    const pseInicio = (primeiro.reduce((s,c) => s+c.pse, 0) / primeiro.length).toFixed(1);
+    const pseFim = (ultimos5.reduce((s,c) => s+c.pse, 0) / ultimos5.length).toFixed(1);
+    const tendencia = pseFim > pseInicio ? '📈 Intensidade crescendo' : pseFim < pseInicio ? '📉 Intensidade caindo' : '➡️ Intensidade estável';
+    evolConteudo.innerHTML = `
+      <div style="display:flex;gap:1rem;margin-bottom:0.6rem;">
+        <div style="flex:1;background:#1a1a2e;border-radius:8px;padding:0.6rem;text-align:center;">
+          <div style="font-size:0.7rem;color:var(--cinza);">PSE Início</div>
+          <div style="font-size:1.4rem;font-weight:700;color:var(--dourado);">${pseInicio}</div>
+        </div>
+        <div style="flex:1;background:#1a1a2e;border-radius:8px;padding:0.6rem;text-align:center;">
+          <div style="font-size:0.7rem;color:var(--cinza);">PSE Recente</div>
+          <div style="font-size:1.4rem;font-weight:700;color:var(--verde);">${pseFim}</div>
+        </div>
+        <div style="flex:1;background:#1a1a2e;border-radius:8px;padding:0.6rem;text-align:center;">
+          <div style="font-size:0.7rem;color:var(--cinza);">Presença</div>
+          <div style="font-size:1.4rem;font-weight:700;color:${presenca >= 80 ? 'var(--verde)' : presenca >= 60 ? 'var(--dourado)' : 'var(--vermelho)'};">${presenca !== null ? presenca + '%' : '—'}</div>
+        </div>
+      </div>
+      <div style="font-size:0.82rem;color:var(--cinza);">${tendencia} · ${totalTreinos} treinos completados · ${totalFaltas} falta${totalFaltas !== 1 ? 's' : ''}</div>`;
+  } else if (evolCard) {
+    evolCard.style.display = 'none';
+  }
+
+  // Mensagem do treinador — última nota ou feedback de check-in
+  const feedbackEl = el('atleta-dash-feedback');
+  if (feedbackEl) {
+    const notas = (a.notas || []).sort((x,y) => new Date(y.data||0) - new Date(x.data||0));
+    const ultimaNota = notas[0];
+    if (ultimaNota) {
+      feedbackEl.textContent = `"${ultimaNota.texto}"`;
+      if (ultimaNota.data) feedbackEl.innerHTML += `<div style="font-size:0.7rem;color:var(--cinza);margin-top:0.3rem;">${new Date(ultimaNota.data+'T00:00:00').toLocaleDateString('pt-BR')}</div>`;
+    } else {
+      feedbackEl.textContent = 'Nenhuma mensagem ainda.';
+    }
+  }
 }
 
 // ======= COMPARATIVO DE ATLETAS =======
@@ -7338,6 +7967,11 @@ async function salvarCartel() {
   a.cartel.amV = parseInt(document.getElementById('cartel-am-v').value) || 0;
   a.cartel.amD = parseInt(document.getElementById('cartel-am-d').value) || 0;
   a.cartel.amE = parseInt(document.getElementById('cartel-am-e').value) || 0;
+
+  const fcRep = parseInt(document.getElementById('cartel-fc-repouso').value);
+  const fcMax = parseInt(document.getElementById('cartel-fc-max').value);
+  if (fcRep >= 30 && fcRep <= 100) a.fcRepouso = fcRep;
+  if (fcMax >= 100 && fcMax <= 230) a.fcMaxReal = fcMax;
 
   await salvarEstado();
   showToast('Cartel salvo com sucesso!');
