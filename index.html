@@ -3328,6 +3328,35 @@ function showTab(tab) {
   if (tab === 'comparativo') renderComparativo();
   if (tab === 'atleta-dashboard') renderAtletaDashboard();
   if (tab === 'atletas') { renderAtletas(); renderConfigChaveIA(); }
+
+  // Sincronizar UI do frequencímetro ao voltar para aba que o exibe
+  if (['sessao', 'checkin'].includes(tab)) _fcSincronizarUI();
+}
+
+function _fcSincronizarUI() {
+  // A conexão BLE continua mesmo com a aba oculta — só a UI precisa ser atualizada
+  const elDesc = document.getElementById('fc-desconectado');
+  const elConec = document.getElementById('fc-conectado');
+  const btn = document.getElementById('btn-conectar-fc');
+
+  if (fcState.ativo && fcState.device?.gatt?.connected) {
+    if (elDesc) elDesc.style.display = 'none';
+    if (elConec) elConec.style.display = 'block';
+    if (btn) { btn.textContent = '📡 CONECTAR CINTA'; btn.disabled = false; }
+    if (fcState.leituras.length > 0) {
+      const ultimo = fcState.leituras[fcState.leituras.length - 1];
+      const el = document.getElementById('fc-bpm-display');
+      if (el) el.textContent = ultimo;
+      const elMedia = document.getElementById('fc-media-display');
+      if (elMedia) elMedia.textContent = Math.round(fcState.leituras.reduce((s,v)=>s+v,0)/fcState.leituras.length);
+      const elMax = document.getElementById('fc-max-display');
+      if (elMax && fcState.max > 0) elMax.textContent = fcState.max;
+    }
+  } else if (!fcState.ativo) {
+    if (elDesc) elDesc.style.display = 'flex';
+    if (elConec) elConec.style.display = 'none';
+    if (btn) { btn.textContent = '📡 CONECTAR CINTA'; btn.disabled = false; }
+  }
 }
 
 // ======= UI GERAL =======
@@ -4072,7 +4101,7 @@ ${taperOuFim}
     document.getElementById('ia-texto').textContent = texto;
     state._iaTexto = texto;
   } catch(e) {
-    document.getElementById('ia-texto').textContent = 'Erro ao conectar com a IA. Verifique sua conexão.';
+    document.getElementById('ia-texto').textContent = 'Erro: ' + (e.message || 'Falha ao conectar com a IA.');
   }
 }
 
@@ -4259,7 +4288,7 @@ ${sessao.obs || ''}`;
 
     showToast('Sessão gerada com IA!');
   } catch(e) {
-    showToast('Erro ao gerar sessão. Tente novamente.', 'erro');
+    showToast('Erro ao gerar sessão: ' + (e.message || 'falha na IA'), 'erro');
   } finally {
     btn.textContent = orig;
     btn.disabled = false;
@@ -4443,7 +4472,7 @@ Seja direto: diga "está alto", "está baixo", "está ok", "recomendo mudar X pa
     const texto = await chamarIA(SYSTEM_ANALISE, _msgAnalise, 1000);
     elTexto.textContent = texto;
   } catch(e) {
-    elTexto.textContent = 'Erro ao conectar com a IA.';
+    elTexto.textContent = 'Erro: ' + (e.message || 'Falha ao conectar com a IA.');
   }
 }
 
@@ -4496,7 +4525,7 @@ Seja direto: "a sessão de Seg está com volume alto, recomendo reduzir de X par
     const texto = await chamarIA(SYSTEM_ANALISE, _msgSemana, 1000);
     elTexto.textContent = texto;
   } catch(e) {
-    elTexto.textContent = 'Erro ao conectar com a IA.';
+    elTexto.textContent = 'Erro: ' + (e.message || 'Falha ao conectar com a IA.');
   }
 }
 function renderSessaoHoje() {
@@ -5330,6 +5359,14 @@ function _fcParseMedida(event) {
   // Descartar leituras fisicamente impossíveis (artefato BLE)
   if (bpm < 30 || bpm > 220) return;
 
+  // Filtro de spike: se a leitura pular mais de 40 bpm de uma vez e
+  // tivermos pelo menos 3 leituras anteriores, descartar como artefato de movimento
+  if (fcState.leituras.length >= 3) {
+    const ultimas3 = fcState.leituras.slice(-3);
+    const mediaRecente = Math.round(ultimas3.reduce((s, v) => s + v, 0) / ultimas3.length);
+    if (Math.abs(bpm - mediaRecente) > 40) return; // spike — descarta
+  }
+
   _fcAtualizarDisplay(bpm);
 }
 
@@ -5378,6 +5415,8 @@ async function conectarCintaFC() {
     fcState.characteristic = char;
 
     await char.startNotifications();
+    // Remover listener anterior antes de adicionar (evita duplicatas)
+    char.removeEventListener('characteristicvaluechanged', _fcParseMedida);
     char.addEventListener('characteristicvaluechanged', _fcParseMedida);
 
     // Reset leituras
@@ -5385,26 +5424,30 @@ async function conectarCintaFC() {
     fcState.max = 0;
     fcState.ativo = true;
 
-    // Reconexão automática se cair
-    device.addEventListener('gattserverdisconnected', async () => {
-      if (!fcState.ativo) return;
-      showToast('Cinta desconectou. Reconectando...', 'aviso');
-      for (let t = 1; t <= 5; t++) {
-        try {
-          await new Promise(r => setTimeout(r, 1000 * t));
-          const srv = await device.gatt.connect();
-          const svc = await srv.getPrimaryService('heart_rate');
-          const c = await svc.getCharacteristic('heart_rate_measurement');
-          fcState.characteristic = c;
-          await c.startNotifications();
-          c.addEventListener('characteristicvaluechanged', _fcParseMedida);
-          showToast('Cinta reconectada!');
-          return;
-        } catch(e) {}
-      }
-      _fcDesconectado();
-      showToast('Não foi possível reconectar. Conecte novamente.', 'erro');
-    });
+    // Reconexão automática se cair — listener nomeado para não duplicar
+    if (!device._fcReconectandoListener) {
+      device._fcReconectandoListener = true;
+      device.addEventListener('gattserverdisconnected', async () => {
+        if (!fcState.ativo) return;
+        showToast('Cinta desconectou. Reconectando...', 'aviso');
+        for (let t = 1; t <= 5; t++) {
+          try {
+            await new Promise(r => setTimeout(r, 1000 * t));
+            const srv = await device.gatt.connect();
+            const svc = await srv.getPrimaryService('heart_rate');
+            const c = await svc.getCharacteristic('heart_rate_measurement');
+            fcState.characteristic = c;
+            await c.startNotifications();
+            c.removeEventListener('characteristicvaluechanged', _fcParseMedida);
+            c.addEventListener('characteristicvaluechanged', _fcParseMedida);
+            showToast('Cinta reconectada!');
+            return;
+          } catch(e) {}
+        }
+        _fcDesconectado();
+        showToast('Não foi possível reconectar. Conecte novamente.', 'erro');
+      });
+    }
 
     // Atualizar UI
     const elDesc = document.getElementById('fc-desconectado');
@@ -6270,7 +6313,7 @@ Análise direta: o que está certo e o que precisa ajustar nessa sessão?`;
     resultEl.textContent = texto;
     resultEl.classList.remove('hidden');
   } catch(e) {
-    showToast('Erro ao analisar sessão', 'erro');
+    showToast('Erro ao analisar sessão: ' + (e.message || 'falha na IA'), 'erro');
   } finally {
     btn.textContent = 'ANALISAR ESTA SESSÃO';
     btn.disabled = false;
@@ -6348,7 +6391,7 @@ Responda APENAS com este JSON:
 
     showToast('Sessão analisada e corrigida pela IA!');
   } catch(e) {
-    showToast('Erro ao corrigir sessão.', 'erro');
+    showToast('Erro ao corrigir sessão: ' + (e.message || 'falha na IA'), 'erro');
   } finally {
     btn.textContent = orig;
     btn.disabled = false;
@@ -6374,7 +6417,7 @@ Recomende QUANDO aplicar cada teste durante as ${numSemanas} semanas. Justifique
     const texto = await chamarIA(_sysProto, _msgProto, 1000);
     alert('PROTOCOLO DE AVALIAÇÕES — PADOTY BOXING\n\n' + texto);
   } catch(e) {
-    showToast('Erro ao gerar protocolo', 'erro');
+    showToast('Erro ao gerar protocolo: ' + (e.message || 'falha na IA'), 'erro');
   }
 }
 
@@ -6779,12 +6822,17 @@ async function chamarAnthropic(system, userMsg, maxTokens, apiKey) {
       'anthropic-dangerous-direct-browser-access': 'true'
     },
     body: JSON.stringify({
-      model: 'claude-sonnet-4-6',
+      model: 'claude-opus-4-5',
       max_tokens: maxTokens,
       system,
       messages: [{ role: 'user', content: userMsg }]
     })
   });
+  if (!resp.ok) {
+    let errMsg = `HTTP ${resp.status}`;
+    try { const d = await resp.json(); errMsg = d.error?.message || JSON.stringify(d.error) || errMsg; } catch(_) {}
+    throw new Error(errMsg);
+  }
   const data = await resp.json();
   if (data.error) throw new Error(data.error.message || JSON.stringify(data.error));
   return data.content?.map(b => b.text || '').join('') || '';
@@ -6909,7 +6957,7 @@ Escreva a reflexão para ele.`;
     renderProposito();
     showToast('Reflexão gerada!');
   } catch(e) {
-    showToast('Erro ao gerar reflexão', 'erro');
+    showToast('Erro ao gerar reflexão: ' + (e.message || 'falha na IA'), 'erro');
   }
 }
 
@@ -6953,7 +7001,7 @@ Rede de apoio: ${p.suporte || '—'}`;
     renderProposito();
     showToast('Análise gerada!');
   } catch(e) {
-    showToast('Erro ao gerar análise', 'erro');
+    showToast('Erro ao gerar análise: ' + (e.message || 'falha na IA'), 'erro');
   }
 }
 
@@ -7409,7 +7457,7 @@ Gere o perfil tático.`;
     renderPerfilComportamental();
     showToast('Perfil tático gerado!');
   } catch(e) {
-    showToast('Erro ao gerar perfil', 'erro');
+    showToast('Erro ao gerar perfil: ' + (e.message || 'falha na IA'), 'erro');
   }
 }
 
