@@ -92,13 +92,13 @@ document.head.appendChild(_appleIcon);
     --font-condensed: 'Barlow Condensed', sans-serif;
 
     /* Escala: xs / sm / base / md / lg / xl / display */
-    --text-xs:   0.72rem;   /* 11.5px — metadados, badges */
-    --text-sm:   0.825rem;  /* 13px   — labels, legendas */
-    --text-base: 1rem;      /* 16px   — corpo */
-    --text-md:   1.125rem;  /* 18px   — subtítulos */
-    --text-lg:   1.375rem;  /* 22px   — títulos de seção */
-    --text-xl:   1.75rem;   /* 28px   — títulos de card principal */
-    --text-display: 3.5rem; /* 56px   — Bebas Neue, header/login */
+    --text-xs:   0.8rem;    /* 13px — metadados, badges */
+    --text-sm:   0.9rem;    /* 14.5px — labels, legendas */
+    --text-base: 1rem;      /* 16px — corpo */
+    --text-md:   1.15rem;   /* 18.5px — subtítulos */
+    --text-lg:   1.4rem;    /* 22px — títulos de seção */
+    --text-xl:   1.8rem;    /* 29px — títulos de card principal */
+    --text-display: 3.5rem; /* 56px — Bebas Neue, header/login */
 
     /* ── Espaço ── */
     --radius-sm: 4px;
@@ -329,12 +329,12 @@ document.head.appendChild(_appleIcon);
   .nav-tabs::-webkit-scrollbar { display: none; }
 
   .nav-tab {
-    padding: 0.8rem 1.1rem;
+    padding: 0.85rem 1.1rem;
     font-family: var(--font-condensed);
-    font-size: var(--text-sm);
+    font-size: var(--text-base);
     font-weight: 500;
-    letter-spacing: 0.05em;
-    color: var(--texto-ter);
+    letter-spacing: 0.04em;
+    color: var(--texto-sec);
     cursor: pointer;
     border-bottom: 2px solid transparent;
     white-space: nowrap;
@@ -344,6 +344,7 @@ document.head.appendChild(_appleIcon);
   .nav-tab.active {
     color: var(--branco);
     border-bottom-color: var(--vermelho);
+    font-weight: 600;
   }
 
   .nav-tab:hover { color: var(--branco); }
@@ -1063,6 +1064,9 @@ document.head.appendChild(_appleIcon);
 
   /* MOBILE PEQUENO (até 480px) — iPhone SE, Android compacto */
   @media (max-width: 480px) {
+    /* Raiz maior em mobile — faz todos os rem escalarem junto */
+    html { font-size: 17px; }
+
     /* Layout geral */
     .content { padding: 0.75rem; }
     .card { padding: 1rem; }
@@ -1079,7 +1083,7 @@ document.head.appendChild(_appleIcon);
     .login-box { padding: 1.25rem; }
 
     /* Navegação */
-    .nav-tab { padding: 0.65rem 0.75rem; font-size: 0.65rem; letter-spacing: 0.04em; }
+    .nav-tab { padding: 0.7rem 0.75rem; font-size: 0.95rem; letter-spacing: 0.03em; }
 
     /* Cards de atleta */
     .atleta-card { flex-wrap: wrap; gap: 0.5rem; }
@@ -1127,12 +1131,13 @@ document.head.appendChild(_appleIcon);
 
   /* MOBILE MÉDIO (481px–768px) — maioria dos Android/iPhones modernos */
   @media (min-width: 481px) and (max-width: 768px) {
+    html { font-size: 16.5px; }
     .content { padding: 1rem; }
     .macro-grid { grid-template-columns: 1fr 1fr; }
     .stats-grid { grid-template-columns: repeat(2, 1fr); }
     .wellness-grid { grid-template-columns: 1fr 1fr; }
     .countdown-number { font-size: 2rem; }
-    .nav-tab { padding: 0.75rem 0.9rem; font-size: var(--text-xs); }
+    .nav-tab { padding: 0.75rem 0.9rem; font-size: var(--text-sm); }
   }
 
   /* TABLET (769px–1024px) — iPad, tablets Android */
@@ -5250,8 +5255,15 @@ function _fcAtualizarDisplay(bpm) {
   const el = id => document.getElementById(id);
 
   if (el('fc-bpm-display')) el('fc-bpm-display').textContent = bpm;
+
+  // Janela deslizante: mantém só as últimas 20 leituras (~20 segundos)
+  // Evita que outliers do início da sessão contaminem a média para sempre
   fcState.leituras.push(bpm);
+  if (fcState.leituras.length > 20) fcState.leituras.shift();
+
+  // Max acumulativo da sessão (armazenado separado da janela)
   if (bpm > fcState.max) { fcState.max = bpm; if (el('fc-max-display')) el('fc-max-display').textContent = bpm; }
+
   const media = Math.round(fcState.leituras.reduce((s, v) => s + v, 0) / fcState.leituras.length);
   if (el('fc-media-display')) el('fc-media-display').textContent = media;
   const zona = _fcZonaAtleta(bpm);
@@ -5314,6 +5326,10 @@ function _fcParseMedida(event) {
   const bpm = formato16bit
     ? event.target.value.getUint16(1, true)
     : event.target.value.getUint8(1);
+
+  // Descartar leituras fisicamente impossíveis (artefato BLE)
+  if (bpm < 30 || bpm > 220) return;
+
   _fcAtualizarDisplay(bpm);
 }
 
@@ -5570,6 +5586,56 @@ function _mtAtualizarTempo() {
   if (el) el.textContent = m + ':' + s.toString().padStart(2,'0');
 }
 
+// ── Wake Lock — mantém tela acesa durante o treino ──────────────────────────
+let _wakeLock = null;
+
+async function _wakeLockAtivar() {
+  // Libera anterior se houver
+  await _wakeLockLiberar();
+  try {
+    if ('wakeLock' in navigator) {
+      _wakeLock = await navigator.wakeLock.request('screen');
+      _wakeLock.addEventListener('release', () => { _wakeLock = null; });
+    } else {
+      // Fallback: vídeo invisível em loop (funciona em iOS Safari)
+      _wakeLockVideoFallback();
+    }
+  } catch(e) {
+    console.warn('Wake Lock não disponível:', e.message);
+  }
+}
+
+async function _wakeLockLiberar() {
+  try { await _wakeLock?.release(); } catch(e) {}
+  _wakeLock = null;
+  const v = document.getElementById('_wl_video');
+  if (v) { v.pause(); v.remove(); }
+}
+
+function _wakeLockVideoFallback() {
+  // Vídeo 1x1 pixel em loop — impede sleep no iOS
+  if (document.getElementById('_wl_video')) return;
+  const v = document.createElement('video');
+  v.id = '_wl_video';
+  v.setAttribute('playsinline', '');
+  v.setAttribute('muted', '');
+  v.loop = true;
+  v.style.cssText = 'position:fixed;top:-9px;width:1px;height:1px;opacity:0;pointer-events:none;';
+  // Vídeo MP4 mínimo em base64 (100ms, 1x1 pixel, preto)
+  v.src = 'data:video/mp4;base64,AAAAIGZ0eXBpc29tAAACAGlzb21pc28yYXZjMW1wNDEAAAAIZnJlZQAAA' +
+          'fptZGF0AAACrGxpYmZhYWMgMS4yNi4xIGh0dHA6Ly93d3cubXBsYXkub3JnL2ZhYWMAAAAQQVZDMQA' +
+          'ATwAAAAAAAAAA';
+  document.body.appendChild(v);
+  v.play().catch(() => {});
+}
+
+// Reativar Wake Lock se o usuário voltar à aba (acontece ao sair e voltar)
+document.addEventListener('visibilitychange', async () => {
+  if (document.visibilityState === 'visible' && mtState.ativo && !_wakeLock) {
+    await _wakeLockAtivar();
+  }
+});
+
 function abrirModoTreino() {
   const overlay = document.getElementById('modo-treino-overlay');
   if (!overlay) { showToast('Overlay não encontrado','erro'); return; }
@@ -5581,6 +5647,8 @@ function abrirModoTreino() {
   clearInterval(mtState.tempoInterval);
   mtState.tempoInterval = setInterval(_mtAtualizarTempo, 1000);
   try { overlay.requestFullscreen?.() || overlay.webkitRequestFullscreen?.(); } catch(e) {}
+  // Manter tela acesa
+  _wakeLockAtivar();
   // Pre-carregar vozes
   if (window.speechSynthesis) {
     window.speechSynthesis.getVoices();
@@ -5606,6 +5674,8 @@ function fecharModoTreino() {
   mtState.roundRodando = false;
   try { document.exitFullscreen?.() || document.webkitExitFullscreen?.(); } catch(e) {}
   if (window.speechSynthesis) window.speechSynthesis.cancel();
+  // Liberar Wake Lock
+  _wakeLockLiberar();
 }
 
 function _mtRoundDisplay() {
